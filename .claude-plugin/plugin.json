@@ -1,6 +1,6 @@
 {
   "name": "prompt-coach",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Scores your prompt draft as you type and rewrites it before you send it. Choose the model, language and verbosity. Terminal, desktop and VS Code.",
   "author": {
     "name": "Diego Pérez"
@@ -50,6 +50,12 @@
       "type": "boolean",
       "title": "Project rules",
       "description": "Read the project's CLAUDE.md and AGENTS.md (up to 4000 characters) so constraints come from the repo's own rules. Adds some tokens to each rewrite.",
+      "default": true
+    },
+    "holdPasted": {
+      "type": "boolean",
+      "title": "Hold prompts with pasted text",
+      "description": "Claude Code only lets a mod read pasted text (and Wispr Flow dictation, which arrives pasted) when you press Enter. When on, a weak prompt with pasted text is held there, in any surface, and the pane shows a proposal made from the full content.",
       "default": true
     }
   }

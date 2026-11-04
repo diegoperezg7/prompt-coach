@@ -4,7 +4,8 @@ import { atom, read } from 'claude-code'
 import type { EngineInterface, RenderInput } from 'claude-code'
 
 import { assess, isQuestion } from '../core/rubric.ts'
-import { addFact, apply, dismiss, improve, improveFromBox, sendAs, startPoll, undo } from './actions.ts'
+import { addFact, apply, dismiss, improve, improveFromBox, pasteHint, sendAs, startPoll, undo } from './actions.ts'
+import { hasPasteChip } from '../core/pastes.ts'
 import { UI } from './i18n.ts'
 import { usageLine } from './usage.ts'
 import { gapHint, HINT_COLS, isCoachable, NARROW, paneLayout, ses, tone, ui } from './state.ts'
@@ -35,6 +36,10 @@ export async function bandVscode($: EngineInterface, e: BandEvent) {
   if (await read($, proposal)) return null
   const text = await read($, draft)
   if (!isCoachable(text) || isQuestion(text)) return null
+  if (hasPasteChip(text)) {
+    const { Text } = $.ui.resolve(e)
+    return <Text key="paste" dimColor>{pasteHint(text)}</Text>
+  }
   const a = assess(text)
   const t = ui(text)
   const { Box, Button, Text } = $.ui.resolve(e)
@@ -60,6 +65,10 @@ export async function bandVscode($: EngineInterface, e: BandEvent) {
 export async function bandTerminal($: EngineInterface, e: BandEvent) {
   const text = await read($, draft)
   if (e.props.hasSurvey || !isCoachable(text) || isQuestion(text)) return null
+  if (hasPasteChip(text)) {
+    const { Text } = $.ui.resolve(e)
+    return <Text key="paste" dimColor>{pasteHint(text)}</Text>
+  }
   const a = assess(text)
   const t = ui(text)
   const { Box, Button, Text } = $.ui.resolve(e)

@@ -22,6 +22,9 @@ export const cfg = {
   verbosity: 'balanced' as Verbosity,
   // Leer CLAUDE.md y AGENTS.md del proyecto como contexto de la reescritura.
   projectRules: true,
+  // Retener al pulsar Enter un prompt flojo con texto pegado, en cualquier superficie: es el único momento en
+  // que Claude Code deja leer lo pegado (también lo que dicta Wispr Flow).
+  holdPasted: true,
 }
 
 /** Estado de la sesión que no se dibuja: se pierde con una recarga, y no pasa nada. */

@@ -4,7 +4,8 @@ import type { Register } from 'claude-code'
 
 import { assess, isQuestion, LANGS } from '../core/rubric.ts'
 import type { Lang } from '../core/rubric.ts'
-import { clearStaleBusy, improve, onDraft, openPane, recordScore, statsText } from './actions.ts'
+import { clearStaleBusy, improve, onDraft, openPane, pasteHint, recordScore, statsText } from './actions.ts'
+import { expandPastes, hasPasteChip, hasPastedBlock } from '../core/pastes.ts'
 import { usageText } from './usage.ts'
 import { UI } from './i18n.ts'
 import { cfg, isCoachable, LAST_LANG, MAX_DRAFT, MODELS, PANE, ses, ui, uiLang } from './state.ts'
@@ -19,6 +20,7 @@ export const register: Register = (on, options) => {
   cfg.model = pick(options.model, MODELS, 'haiku')
   cfg.verbosity = pick(options.verbosity, ['concise', 'balanced', 'detailed'] as const, 'balanced')
   cfg.projectRules = options.projectRules !== false
+  cfg.holdPasted = options.holdPasted !== false
 
   on('session.start', async ($, e, next) => {
     ses.hasBand = e.surface === 'terminal' || e.surface === 'desktop'
@@ -47,14 +49,18 @@ export const register: Register = (on, options) => {
   // Sin banda (VS Code) el motor no ve las teclas: el único momento de ofrecer la mejora es el Enter.
   // Se retiene solo un prompt flojo con intención de trabajo (no preguntas ni respuestas cortas), sin adjuntos.
   on('prompt.submit', async ($, e, next) => {
-    const text = e.text.trim()
+    // Lo pegado llega aquí expandido, entre etiquetas: se puntúa sin ellas.
+    const text = expandPastes(e.text.trim())
+    const pastedHold = cfg.holdPasted && hasPastedBlock(e.text)
     // Historial: la nota de lo que sale de verdad desde el compositor (no comandos ni preguntas); lo que se
     // retiene no ha salido, y lo que se envía después desde el panel se registra en sendAs.
     const pass = async () => {
       if (e.origin.kind === 'composer' && !e.command && !e.isMeta && isCoachable(text) && !isQuestion(text)) await recordScore($, text)
       return next(e)
     }
-    if ((ses.surface !== 'vscode' && ses.surface !== 'mobile') || e.command || e.isMeta || e.attachments?.length) return pass()
+    // VS Code retiene siempre (no ve las teclas); en terminal y escritorio, solo lo que lleva texto pegado.
+    const canHold = ses.surface === 'vscode' || ses.surface === 'mobile' || (pastedHold && ses.surface !== null)
+    if (!canHold || e.command || e.isMeta || e.attachments?.length) return pass()
     if (e.origin.kind !== 'composer') return pass()
     if (!isCoachable(text) || isQuestion(text)) return pass()
     const a = assess(text)
@@ -63,7 +69,7 @@ export const register: Register = (on, options) => {
       $.ui.status(`${a.weak ? t.weak : t.solid} ${a.score}/100`)
       return pass()
     }
-    const done = await improve($, text)
+    const done = await improve($, e.text.trim())
     return { drop: `Prompt Coach: ${t.weak} ${a.score}/100 → ${done.score}/100. ${t.held}\n\n${done.text}` }
   })
 
@@ -74,6 +80,7 @@ export const register: Register = (on, options) => {
     const text = (typed || (await $.prompt.read()).text).trim()
     const t = ui(text)
     if (!isCoachable(text)) return { text: t.empty }
+    if (hasPasteChip(text)) return { text: pasteHint(text) }
     if (text.length > MAX_DRAFT) return { text: t.tooLong }
     // Con panel colocado, el comando responde al momento y la propuesta llega al panel. Si el terminal es
     // demasiado estrecho para colocarlo, la propuesta va en la respuesta del comando.

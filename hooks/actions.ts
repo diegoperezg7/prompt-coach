@@ -9,6 +9,8 @@ import {
 import type { CriterionId, Lang } from '../core/rubric.ts'
 import { UI } from './i18n.ts'
 import { callCost } from '../core/pricing.ts'
+import { draftForModel, expandPastes, hasPasteChip, hasPastedBlock, restorePastes, splitPastes } from '../core/pastes.ts'
+import type { Pasted } from '../core/pastes.ts'
 import { nowMs, planDelta, planNow, recordCalls, summarize } from './usage.ts'
 import type { Call } from './usage.ts'
 import { cfg, isCoachable, MAX_DRAFT, noteLang, PANE, RULE_FILES, ses, ui, uiLang } from './state.ts'
@@ -38,7 +40,11 @@ export async function clearStaleBusy($: EngineInterface) {
   await update($, proposal, p => (p && p.isBusy ? null : p))
 }
 
-export async function improve($: EngineInterface, text: string): Promise<Improved> {
+export async function improve($: EngineInterface, sent: string): Promise<Improved> {
+  // Un prompt enviado con texto pegado llega con el contenido entre etiquetas: se puntúa y se guarda expandido,
+  // y el modelo lee un dictado entero o, si es material de apoyo, las palabras de la persona con el pegado aparte.
+  const pasted = hasPastedBlock(sent) ? splitPastes(sent) : null
+  const text = pasted ? expandPastes(sent) : sent
   const lang = langOf(text)
   const before = assess(text).score
   noteLang($, text)
@@ -56,7 +62,7 @@ export async function improve($: EngineInterface, text: string): Promise<Improve
   await busy
   await opening
   try {
-    return await rewrite($, text, lang, id, controller.signal)
+    return await rewrite($, text, pasted, lang, id, controller.signal)
   } catch {
     return { text, score: before }
   } finally {
@@ -67,7 +73,8 @@ export async function improve($: EngineInterface, text: string): Promise<Improve
   }
 }
 
-async function rewrite($: EngineInterface, text: string, lang: Lang, id: number, signal: AbortSignal): Promise<Improved> {
+async function rewrite($: EngineInterface, text: string, pasted: Pasted | null, lang: Lang, id: number, signal: AbortSignal): Promise<Improved> {
+  const forModel = pasted ? draftForModel(pasted) : text
   const cwd = await $.session.cwd()
   const used = cfg.model === 'session' ? await $.session.model() : cfg.model
 
@@ -103,23 +110,25 @@ async function rewrite($: EngineInterface, text: string, lang: Lang, id: number,
     return res
   }
 
-  const r = await ask(rewritePrompt(text, opts), 1)
-  let best = r.isAnswered ? keepAttachments(text, unfence(r.text)) : ''
+  const r = await ask(rewritePrompt(forModel, opts), 1)
+  let best = r.isAnswered ? keepAttachments(forModel, unfence(r.text)) : ''
   let passes = r.isAnswered ? 1 : 0
   // Segunda pasada dirigida: solo si quedan criterios que el modelo puede cubrir sin inventar datos.
   if (best) {
     const a = assess(best, { known, cwd })
     if (a.score < 100 && isRepairable(a) && !signal.aborted) {
-      const r2 = await ask(repairPrompt(text, best, a, opts), 2)
+      const r2 = await ask(repairPrompt(forModel, best, a, opts), 2)
       if (r2.isAnswered) {
         passes = 2
-        const second = keepAttachments(text, unfence(r2.text))
+        const second = keepAttachments(forModel, unfence(r2.text))
         if (assess(second, { known, cwd }).score > a.score) best = second
       }
     }
   }
-  const local = best ? null : buildPrompt(text, cwd)
-  const out = best || keepAttachments(text, local!.prompt)
+  const local = best ? null : buildPrompt(forModel, cwd)
+  const drafted = best || keepAttachments(forModel, local!.prompt)
+  // El material de apoyo vuelve entero a la propuesta, para que el agente lo reciba igual que con el original.
+  const out = pasted ? restorePastes(drafted, pasted) : drafted
   const after = assess(out, { known, cwd })
   await update($, proposal, p =>
     p && id === ses.run
@@ -206,6 +215,7 @@ export async function improveFromBox($: EngineInterface) {
   const text = (await $.prompt.read()).text.trim()
   const t = ui(text)
   if (!isCoachable(text)) return $.ui.toast(t.empty)
+  if (hasPasteChip(text)) return $.ui.toast(pasteHint(text))
   if (text.length > MAX_DRAFT) return $.ui.toast(t.tooLong)
   await improve($, text)
 }
@@ -232,9 +242,16 @@ export async function onDraft($: EngineInterface, text: string, isOwnFill: boole
   if (!isOwnFill && (await read($, proposal))) void dismiss($)
   if (ses.hasBand) return
   if (!isCoachable(text) || isQuestion(text)) return $.ui.status(undefined)
+  if (hasPasteChip(text)) return $.ui.status(pasteHint(text))
   const a = assess(text)
   const t = ui(text)
   $.ui.status(`${a.weak ? t.weak : t.solid} ${a.score}/100 · ${t.hint}`)
+}
+
+/** Lo que se dice en vez de puntuar un marcador de pegado, cuyo contenido aún no se puede leer. */
+export function pasteHint(text: string): string {
+  const t = ui(text)
+  return cfg.holdPasted ? t.pasteHint : t.pasteHintNoHold
 }
 
 // ---------- historial ----------
@@ -253,7 +270,7 @@ async function history($: EngineInterface): Promise<Entry[]> {
 export async function recordScore($: EngineInterface, text: string) {
   try {
     const now = await $.clock.now()
-    const a = assess(text)
+    const a = assess(expandPastes(text))
     const kept = (await history($)).filter(e => now - e.t < 90 * DAY).slice(-1999)
     kept.push({ t: now, score: a.score, missing: a.missing.map(c => c.id) })
     await $.store.set(HISTORY, kept)

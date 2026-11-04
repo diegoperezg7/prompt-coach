@@ -657,3 +657,54 @@ test('plan share formatting: a window that did not move reads below resolution; 
   expect(fmtPlan({ five_hour: 0.3, seven_day: 0 }, 'en')).toBe('plan 5 h +0.3 %')
   expect(fmtPlan(undefined, 'es')).toBe('')
 })
+
+const pastedBlock = (id: string, body: string) => `\n\n<pasted_content id="${id}">\n${body}\n</pasted_content id="${id}">\n`
+
+test('a paste marker in the draft is not scored: the band says it is read on Enter, and /coach does not guess', async ($, on) => {
+  engine(on, { isAnswered: true, text: FULL, usage: USAGE })
+  await $.session.start({ cwd: '/tmp/demo-app', surface: 'terminal', isInteractive: true })
+  await $.prompt.change({ text: 'mira esto: [Pasted text #1 +12 lines]', cursor: 37, origin: { kind: 'engine' } })
+  const band = await $.ui.mount({ ...BAND, props: { ...BAND.props, bodyColumns: 120 }, surface: 'terminal' })
+  expect((await band.find({ type: 'Text', text: /pegado/ }))?.text).toMatch(/lo lee al pulsar Enter/)
+  expect(await band.find({ type: 'Button', key: 'improve' })).toBeUndefined()
+  await band.unmount()
+  const ran = await $.command.run({ command: 'coach', args: 'mira esto: [Pasted text #1 +12 lines]', origin: ORIGIN, presentation: 'transcript' })
+  expect(ran.text).toMatch(/lo lee al pulsar Enter/)
+})
+
+test('on Enter in the terminal a weak dictation is held and rewritten from its full content; a solid one goes through', async ($, on) => {
+  asked.length = 0
+  engine(on, { isAnswered: true, text: FULL, usage: USAGE })
+  await $.session.start({ cwd: '/tmp/demo-app', surface: 'terminal', isInteractive: true })
+  const dictation = pastedBlock('7b0c', 'arregla el login que devuelve error').trim()
+  const held = await $.prompt.submit({ text: dictation, origin: { kind: 'composer' }, wait: false })
+  expect(held.drop).toMatch(/^Prompt Coach: Prompt flojo \d+\/100 → \d+\/100\. Retenido/)
+  expect(asked[0]).toMatch(/Draft to rewrite:\narregla el login que devuelve error$/)
+  expect(asked.join('\n')).not.toMatch(/pasted_content/)
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  expect(String((await ui.find({ type: 'Input', key: 'proposal' }))?.props.value)).toBe(FULL)
+  await ui.unmount()
+
+  const solid = pastedBlock('9f9f', SOLID).trim()
+  expect((await $.prompt.submit({ text: solid, origin: { kind: 'composer' }, wait: false })).text).toBe(solid)
+})
+
+test('pasted support material: the model reads it apart and the held proposal carries it whole', async ($, on) => {
+  asked.length = 0
+  const LOG = 'TypeError: Cannot read properties of undefined\n    at login (src/auth/login.ts:42:18)'
+  engine(on, { isAnswered: true, text: 'Objetivo: arreglar el error de [Pasted text #1].', usage: USAGE })
+  await $.session.start({ cwd: '/tmp/demo-app', surface: 'terminal', isInteractive: true })
+  const held = await $.prompt.submit({ text: `arregla esto${pastedBlock('a1', LOG)}`.trim(), origin: { kind: 'composer' }, wait: false })
+  expect(held.drop).toBeDefined()
+  expect(asked[0]).toMatch(/Draft to rewrite:\narregla esto \[Pasted text #1\]\n\nPasted text #1 \(the agent receives it as it is[\s\S]*TypeError/)
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  expect(String((await ui.find({ type: 'Input', key: 'proposal' }))?.props.value)).toBe(`Objetivo: arreglar el error de\n\n${LOG}\n\n.`)
+  await ui.unmount()
+})
+
+test('holdPasted off: the terminal never holds, pasted or not', { options: { holdPasted: false } }, async ($, on) => {
+  engine(on, { isAnswered: true, text: FULL, usage: USAGE })
+  await $.session.start({ cwd: '/tmp/demo-app', surface: 'terminal', isInteractive: true })
+  const dictation = pastedBlock('7b0c', 'arregla el login').trim()
+  expect((await $.prompt.submit({ text: dictation, origin: { kind: 'composer' }, wait: false })).text).toBe(dictation)
+})
