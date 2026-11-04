@@ -19,6 +19,12 @@
   It never sends anything on its own: you always choose.
 </p>
 
+<p align="center">
+  <b>Checked in real Claude Code sessions:</b> the live score climbs from 5 to 75 as a draft gains a path, the expected behaviour, a test and a constraint.<br>
+  <code>/coach</code> takes a one-line draft about a login that returns 500 from 33 to 90 and asks for the one fact it cannot invent (which file); in the demo below, the answer takes it to 100.<br>
+  <code>/coach stats</code> answers with this week's average against the previous one and the criterion you miss most.
+</p>
+
 ---
 
 ## Your score, as you type

@@ -19,6 +19,12 @@
   Nunca envía nada por su cuenta: siempre eliges tú.
 </p>
 
+<p align="center">
+  <b>Comprobado en sesiones reales de Claude Code:</b> la nota en vivo sube de 5 a 75 cuando el borrador gana ruta, comportamiento esperado, un test y una restricción.<br>
+  <code>/coach</code> lleva un borrador de una línea sobre un login que devuelve 500 de 33 a 90 y pregunta el único dato que no puede inventar (qué archivo); en la demo de abajo, la respuesta lo lleva a 100.<br>
+  <code>/coach stats</code> responde con la media de esta semana frente a la anterior y el criterio que más te falta.
+</p>
+
 ---
 
 ## La nota, mientras escribes
