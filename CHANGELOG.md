@@ -2,6 +2,12 @@
 
 All notable changes to Prompt Coach. Versions follow `.claude-plugin/plugin.json`.
 
+## Unreleased
+
+### Fixed
+
+- **Codex adapter: the hook blocked its own `$coach` skill.** Invoking the skill with a weak draft (`$coach arregla el login`) is itself a weak prompt, so the `UserPromptSubmit` hook held it and the skill never ran. Skill mentions (`$name …`) now go through, like `/commands`. Found while testing the adapter; it does not change the Claude Code mod.
+
 ## 1.7.2 (2026-11-04)
 
 ### Fixed

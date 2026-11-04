@@ -9,6 +9,8 @@ test('the Codex hook holds a weak work prompt with the reason in its language, a
   expect(codexHook({ prompt: 'fix the login' })?.reason).toMatch(/^Prompt Coach: Weak prompt 5\/100[\s\S]*Run \$coach/)
   expect(codexHook({ prompt: 'raw: arregla el login' })).toBeNull()
   expect(codexHook({ prompt: '/review' })).toBeNull()
+  // La skill $coach se invoca con un borrador flojo: el hook no puede bloquearla.
+  expect(codexHook({ prompt: '$coach arregla el login' })).toBeNull()
   expect(codexHook({ prompt: '¿cómo funciona el pooler de supabase?' })).toBeNull()
   expect(codexHook({ prompt: 'ok' })).toBeNull()
   expect(codexHook({ prompt: 'Revisa src/auth/login.ts: el login devuelve 500 al enviar el formulario; localiza la causa y añade un test que lo cubra.' })).toBeNull()
