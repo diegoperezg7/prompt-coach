@@ -138,6 +138,7 @@ claude plugin validate .
 | `hooks/coach.test.tsx` | tests with the `claude-code/testing` kit |
 | `bench/` | model benchmark with a blind judge |
 | `types/index.d.ts` | the mod's state contract |
+| `CHANGELOG.md` | version history |
 | `assets/demo.mp4` | 35 s demo video, ready to share |
 
 ## License
