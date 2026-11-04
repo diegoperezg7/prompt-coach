@@ -23,15 +23,15 @@
 
 ## La nota, mientras escribes
 
-Una banda sobre el compositor puntúa cada tecla: ámbar por debajo de 60, verde a partir de ahí. Aquí pasa de **5** a **75** al añadir ruta, comportamiento esperado, un test y una restricción.
+Una banda sobre el compositor puntúa cada tecla: ámbar por debajo de 60, verde a partir de ahí. Aquí pasa de **5** a **75** al añadir ruta, comportamiento esperado, un test y una restricción, y desde 60 columnas la banda dice lo que más resta todavía (aquí, el formato de respuesta).
 
-<p align="center"><img src="assets/live-es.gif" alt="La puntuación sube de 5 a 75 mientras se escribe el prompt" width="100%"></p>
+<p align="center"><img src="assets/live-es.gif" alt="La puntuación sube de 5 a 75 mientras se escribe el prompt, y la banda nombra el criterio que más resta" width="100%"></p>
 
 ## Mejorar con un comando
 
-Desde 60 columnas la banda nombra además el criterio que más resta. `/coach` (o el botón de la banda) reescribe el borrador con el modelo que elijas (Haiku por defecto) usando la conversación reciente y abre un panel con la propuesta. Desde ahí puedes sustituir el borrador, deshacerlo, mejorarlo de nuevo, copiarlo o cancelar; cuando falta un dato que solo tú sabes (el archivo, el error literal), el panel te pide solo ese y mejora otra vez con tu respuesta. `/coach stats` enseña la media de esta semana frente a la anterior y el criterio que más te falta. Grabación real: **48 → 100**.
+Desde 60 columnas la banda nombra además el criterio que más resta. `/coach` (o el botón de la banda) reescribe el borrador con el modelo que elijas (Haiku por defecto) usando la conversación reciente y abre un panel con la propuesta. Desde ahí puedes sustituir el borrador, deshacerlo, mejorarlo de nuevo, copiarlo o cancelar; cuando falta un dato que solo tú sabes (el archivo, el error literal), el panel te pide solo ese y mejora otra vez con tu respuesta. `/coach stats` enseña la media de esta semana frente a la anterior y el criterio que más te falta. Grabación real: el borrador no dice el archivo, así que la propuesta se queda en **93** y lo pregunta; con la respuesta, **100**.
 
-<p align="center"><img src="assets/coach-es.gif" alt="El comando coach abre el panel con la propuesta de 48 a 100 y sustituye el borrador" width="100%"></p>
+<p align="center"><img src="assets/coach-es.gif" alt="El comando coach propone de 41 a 93, pregunta el archivo y con src/auth/login.ts llega a 100" width="100%"></p>
 
 ## Cómo funciona
 
@@ -43,15 +43,15 @@ Desde 60 columnas la banda nombra además el criterio que más resta. `/coach` (
 
 | Criterio | Puntos | Cuenta si |
 |---|---|---|
-| Objetivo | 20 | hay qué conseguir, con verbo y objeto |
+| Objetivo | 20 | hay un verbo de encargo y un objeto (seis palabras o una ruta), o una pregunta concreta; la longitud sola no cuenta |
 | Contexto | 15 | hay ruta, archivo, `símbolo` o @mención **que aparece en el borrador o la conversación** |
 | Detalle | 15 | dos datos concretos: actual y esperado, error, ejemplo, cifra, adjunto |
-| Criterio de aceptación | 20 | dice cuándo está hecho (12 si solo pide verificar) |
-| Restricciones | 15 | dos límites: qué no tocar, alcance |
+| Criterio de aceptación | 20 | dice cómo se comprueba que está hecho: una prueba, un resultado observable o una cifra (12 si solo pide verificar); la cabecera sola no cuenta |
+| Restricciones | 15 | dos límites reales («no cambies la API», «solo toca auth»); ni la cabecera ni un «solo, nunca» suelto cuentan |
 | Formato de respuesta | 10 | dice qué devolver |
 | Claridad | 5 | sin «esto», «lo de», «algo» ni huecos `[...]` |
 
-- **No se infla.** Una ruta que el modelo se inventa no puntúa, y el prompt de reescritura le prohíbe afirmar datos del proyecto que no consten.
+- **No se infla.** Una ruta que el modelo se inventa no puntúa, rellenar con palabras clave sin contenido saca nota floja, y el prompt de reescritura le prohíbe afirmar datos del proyecto que no consten. 26 casos de regresión en seis idiomas lo vigilan (`core/rubric.fixtures.ts`).
 - **Un 100 se gana.** Solo llega cuando el borrador o la conversación traen la ubicación y los datos. Sin ellos la propuesta se queda en 86-93, pide al agente que lo averigüe y el panel dice qué falta: `Falta para 100: contexto 8/15`.
 
 ## Se adapta a cualquier terminal

@@ -23,15 +23,15 @@
 
 ## Your score, as you type
 
-A band above the composer scores every keystroke: amber below 60, green from there on. Here it climbs from **5** to **75** as the draft gains a file path, the expected behaviour, a test and a constraint.
+A band above the composer scores every keystroke: amber below 60, green from there on. Here it climbs from **5** to **75** as the draft gains a file path, the expected behaviour, a test and a constraint, and from 60 columns the band names what still costs the most (here, the response format).
 
-<p align="center"><img src="assets/live.gif" alt="The score climbs from 5 to 75 while the prompt is typed" width="100%"></p>
+<p align="center"><img src="assets/live.gif" alt="The score climbs from 5 to 75 while the prompt is typed, and the band names the criterion that costs the most" width="100%"></p>
 
 ## Improve it with one command
 
-From 60 columns the band also names the criterion that costs the most. `/coach` (or the band's button) rewrites the draft with the model you chose (Haiku by default), using the recent conversation, and opens a pane with the proposal. From there you can replace the draft, undo, improve again, copy or cancel; when a fact only you know is missing (the file, the exact error), the pane asks for just that and improves again with your answer. `/coach stats` shows this week's average against the previous one and the criterion you miss most. Real recording: **48 → 100**.
+From 60 columns the band also names the criterion that costs the most. `/coach` (or the band's button) rewrites the draft with the model you chose (Haiku by default), using the recent conversation, and opens a pane with the proposal. From there you can replace the draft, undo, improve again, copy or cancel; when a fact only you know is missing (the file, the exact error), the pane asks for just that and improves again with your answer. `/coach stats` shows this week's average against the previous one and the criterion you miss most. Real recording: the draft has no file, so the proposal stops at **93** and asks for it; with the answer, **100**.
 
-<p align="center"><img src="assets/coach.gif" alt="The coach command opens the pane with a 48 to 100 proposal and replaces the draft" width="100%"></p>
+<p align="center"><img src="assets/coach.gif" alt="The coach command proposes 41 to 93, asks which file, and with src/auth/login.ts reaches 100" width="100%"></p>
 
 ## How it works
 
@@ -43,15 +43,15 @@ From 60 columns the band also names the criterion that costs the most. `/coach` 
 
 | Criterion | Points | Counts when |
 |---|---|---|
-| Goal | 20 | there is something to achieve, with a verb and an object |
+| Goal | 20 | there is a task verb and an object (six words or a path), or a concrete question; length alone does not count |
 | Context | 15 | there is a path, file, `symbol` or @mention **that appears in the draft or the conversation** |
 | Detail | 15 | two concrete facts: current and expected behaviour, error, example, figure, attachment |
-| Acceptance criteria | 20 | it says when it is done (12 if it only asks to verify) |
-| Constraints | 15 | two limits: what not to touch, scope |
+| Acceptance criteria | 20 | it says how to check it is done: a test, an observable result or a figure (12 if it only asks to verify); the header alone does not count |
+| Constraints | 15 | two real limits ("do not change the API", "only touch auth"); the header or a bare "only, never" does not count |
 | Response format | 10 | it says what to return |
 | Clarity | 5 | no "this thing", "stuff" or `[...]` gaps |
 
-- **No inflation.** A path the model invents scores nothing, and the rewrite prompt forbids stating project facts that are not given.
+- **No inflation.** A path the model invents scores nothing, keyword stuffing without content scores weak, and the rewrite prompt forbids stating project facts that are not given. 26 regression cases in six languages keep it that way (`core/rubric.fixtures.ts`).
 - **A 100 is earned.** It only comes when the draft or the conversation brings the location and the facts. Without them the proposal stays at 86-93, tells the agent to find out, and the pane says what is missing: `Missing for 100: context 8/15`.
 
 ## Fits any terminal
