@@ -9,6 +9,8 @@ export type Usage = {
   /** Dólares a precio de lista; null si el modelo no está en la tabla de precios. */
   usd: number | null
   ms: number
+  /** Lo que subió cada ventana del plan (puntos de porcentaje); undefined sin plan o sin lectura. */
+  plan?: Record<string, number>
 }
 
 export type Proposal = {

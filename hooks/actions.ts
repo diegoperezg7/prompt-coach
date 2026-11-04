@@ -9,7 +9,7 @@ import {
 import type { CriterionId, Lang } from '../core/rubric.ts'
 import { UI } from './i18n.ts'
 import { callCost } from '../core/pricing.ts'
-import { nowMs, recordCalls, summarize } from './usage.ts'
+import { nowMs, planDelta, planNow, recordCalls, summarize } from './usage.ts'
 import type { Call } from './usage.ts'
 import { cfg, isCoachable, MAX_DRAFT, noteLang, PANE, RULE_FILES, ses, ui, uiLang } from './state.ts'
 
@@ -81,11 +81,13 @@ async function rewrite($: EngineInterface, text: string, lang: Lang, id: number,
   // Cada llamada se mide: tokens de su respuesta y su coste a precio de lista (las del mod no entran en /cost).
   const calls: Call[] = []
   async function ask(prompt: string, pass: 1 | 2) {
+    const plan0 = await planNow($)
     const t0 = await nowMs($)
     const res = await $.model.complete({
       model: used, system: systemPrompt(lang, cfg.verbosity), prompt, maxTokens: 900, effort: 'low', timeoutMs: 30_000,
     }, { signal })
     const t1 = await nowMs($)
+    const plan1 = await planNow($)
     const u = res.usage
     calls.push({
       t: t0, model: used, pass,
@@ -96,6 +98,7 @@ async function rewrite($: EngineInterface, text: string, lang: Lang, id: number,
       usd: callCost(used, { uncached: u.input_tokens, cacheRead: u.cache_read_input_tokens, cacheWrite: u.cache_creation_input_tokens, output: u.output_tokens }),
       ms: t1 - t0,
       ok: res.isAnswered,
+      plan: planDelta(plan0, plan1),
     })
     return res
   }

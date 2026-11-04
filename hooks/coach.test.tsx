@@ -1,5 +1,6 @@
 import { expect, mock, test } from 'claude-code/testing'
 import { callCost } from '../core/pricing.ts'
+import { fmtPlan } from './usage.ts'
 import { assess } from '../core/rubric.ts'
 
 const USAGE = { input_tokens: 0, output_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 }
@@ -606,15 +607,15 @@ test('each model call records its exact tokens and its cost at list price; the p
 
   const ui = await $.ui.mount({ ...PANE, surface: 'vscode' })
   // haiku: 600 × 0,10 + 400 × 0,01 + 300 × 0,50 = 214 $ por millón = 0,000214 $ por llamada
-  expect((await ui.find({ type: 'Text', text: /llamadas/ }))?.text).toBe('haiku · 2 llamadas · 2000 in (800 en caché) · 600 out · 0,0004 $ · 0,0 s')
+  expect((await ui.find({ type: 'Text', text: /llamadas/ }))?.text).toBe('haiku · 2 llamadas · 2000 in (800 en caché) · 600 out · 0,0004 $ API · 0,0 s')
   await ui.unmount()
 
   const calls = stored.get('usage') as { pass: number; input: number; cached: number; output: number; usd: number }[]
   expect(calls.map(c => [c.pass, c.input, c.cached, c.output, Number(c.usd.toFixed(6))])).toEqual([[1, 1000, 400, 300, 0.000214], [2, 1000, 400, 300, 0.000214]])
   const report = await $.command.run({ command: 'coach', args: 'usage', origin: ORIGIN, presentation: 'transcript' })
-  expect(report.text).toMatch(/Hoy: 2 llamadas · 2000 in · 600 out · 0,0004 \$/)
+  expect(report.text).toMatch(/Hoy: 2 llamadas · 2000 in · 600 out · 0,0004 \$ API/)
   expect(report.text).toMatch(/Por modelo \(7 días\): haiku 2 llamadas/)
-  expect(report.text).toMatch(/haiku · pasada 2 · 1000 in \(400 en caché\) · 300 out · 0,0002 \$/)
+  expect(report.text).toMatch(/haiku · pasada 2 · 1000 in \(400 en caché\) · 300 out · 0,0002 \$ API/)
 })
 
 test('list prices: the rewrite cost matches what Claude Code charges, and an unknown model gets no invented price', async () => {
@@ -625,4 +626,34 @@ test('list prices: the rewrite cost matches what Claude Code charges, and an unk
   expect(callCost('opus', { uncached: 1_000_000, cacheRead: 0, cacheWrite: 0, output: 0 })).toBe(4)
   expect(callCost('claude-opus-4-8', { uncached: 1000, cacheRead: 0, cacheWrite: 0, output: 0 })).toBeNull()
   expect(callCost('haiku', { uncached: 200_000, cacheRead: 0, cacheWrite: 0, output: 0 })).toBe(0.1)
+})
+
+test('each call records how much it moved each plan window; below the 0.1 % resolution it says so instead of 0', async ($, on) => {
+  const stored = new Map<string, unknown>()
+  let fiveHour = 20
+  engine(on, (prompt: string) => {
+    fiveHour += 0.2
+    return { isAnswered: true, text: /Your previous version/.test(prompt) ? FULL : 'Objetivo\nArregla el login.', usage: USAGE }
+  }, [], ROWS)
+  on('store.get', (_, e) => ({ value: stored.get(e.key) }))
+  on('store.set', (_, e) => { stored.set(e.key, e.value); return { value: undefined } })
+  on('session.usage', () => ({ value: { startedAt: 0, context: { tokens: 0, window: 200000 }, rateLimits: [
+    { kind: 'five_hour', percentUsed: Math.round(fiveHour * 10) / 10, resetsAt: '2026-11-04T17:50:00Z' },
+    { kind: 'seven_day', percentUsed: 70 },
+  ] } }))
+  await $.session.start({ cwd: '/tmp/demo-app', surface: 'vscode', isInteractive: true })
+  await $.command.run({ command: 'coach', args: 'arregla el login', origin: ORIGIN, presentation: 'transcript' })
+
+  const ui = await $.ui.mount({ ...PANE, surface: 'vscode' })
+  expect((await ui.find({ type: 'Text', text: /llamadas/ }))?.text).toMatch(/· plan 5 h \+0,4 % ·/)
+  await ui.unmount()
+  const report = await $.command.run({ command: 'coach', args: 'usage', origin: ORIGIN, presentation: 'transcript' })
+  expect(report.text).toMatch(/Tu plan ahora: 5 h 20,4 % \(se reinicia [^)]+\) · 7 días 70,0 %/)
+  expect(report.text).toMatch(/Hoy: 2 llamadas · 0 in · 0 out · plan 5 h \+0,4 %/)
+})
+
+test('plan share formatting: a window that did not move reads below resolution; no plan, nothing', async () => {
+  expect(fmtPlan({ five_hour: 0, seven_day: 0 }, 'es')).toBe('plan <0,1 %')
+  expect(fmtPlan({ five_hour: 0.3, seven_day: 0 }, 'en')).toBe('plan 5 h +0.3 %')
+  expect(fmtPlan(undefined, 'es')).toBe('')
 })
