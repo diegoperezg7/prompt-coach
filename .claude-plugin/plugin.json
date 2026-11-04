@@ -1,6 +1,6 @@
 {
   "name": "prompt-coach",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Scores your prompt draft as you type and rewrites it with Haiku (or local rules) before you send it. English and Spanish. Terminal, desktop and VS Code.",
   "author": {
     "name": "Diego Pérez"

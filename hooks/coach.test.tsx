@@ -1,4 +1,5 @@
 import { expect, mock, test } from 'claude-code/testing'
+import { assess } from '../core/rubric.ts'
 
 const USAGE = { input_tokens: 0, output_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 }
 const ORIGIN = { kind: 'person' } as const
@@ -323,4 +324,13 @@ test('language: es draws the interface in Spanish for an English draft', { optio
   const band = await $.ui.mount({ ...BAND, props: { ...BAND.props, bodyColumns: 80 }, surface: 'terminal' })
   expect(await band.find({ type: 'Text', text: 'Prompt flojo' })).toBeDefined()
   await band.unmount()
+})
+
+test('a status code the draft "returns" is not a response format, in either language', async () => {
+  const es = assess('arregla el login de src/auth/login.ts: al enviar el formulario devuelve 500 en vez de entrar. Añade un test que lo cubra y no toques el registro')
+  const en = assess("fix the login in src/auth/login.ts: submitting the form returns 500 instead of signing in. Add a test that covers it and don't touch signup")
+  expect(es.criteria.find(c => c.id === 'formato')?.points).toBe(0)
+  expect(en.criteria.find(c => c.id === 'formato')?.points).toBe(0)
+  expect(es.score).toBe(en.score)
+  expect(assess('Formato de respuesta: diff resumido por archivo.').criteria.find(c => c.id === 'formato')?.points).toBe(10)
 })

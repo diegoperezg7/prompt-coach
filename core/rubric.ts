@@ -151,8 +151,9 @@ export function assess(text: string, opts: { known?: string; cwd?: string; lang?
   const limits = count(/\b(no toques|no cambies|no modifiques|no anadas|no uses|no rompas|no borres|no reescribas|no instales|sin anadir|sin cambiar|sin tocar|sin dependencias|sin romper|solo|unicamente|evita|manten|respeta|restricciones|alcance|nunca|don'?t|do not|only|without|avoid|keep|never|constraints|scope)\b/g, n)
   add('restricciones', limits >= 2 ? 15 : limits === 1 ? 8 : 0, limits === 1 ? w.oneLimit : w.noLimit)
 
-  // Formato de respuesta: qué devuelve el agente al terminar.
-  add('formato', has(/\b(formato|responde con|responde en|devuelve|devuelveme|entrega|resumen|resume|tabla|diff|en \d+ lineas|output|respond with|reply with|return|format|summary|table|bullet)\b/, n) ? 10 : 0, w.noFormat)
+  // Formato de respuesta: qué devuelve el agente al terminar. «devuelve» o «returns» a secas no cuentan:
+  // suelen describir el fallo («devuelve 500»), no la respuesta que se pide.
+  add('formato', has(/\b(formato|responde con|responde en|devuelveme|dame|entregame|resumen|resume|tabla|diff|en \d+ lineas|lista de cambios|output|respond with|reply with|give me|format|summary|table|bullet|list of changes)\b/, n) ? 10 : 0, w.noFormat)
 
   // Claridad: sin referencias vagas ni huecos por rellenar.
   const vague = count(/\b(esto|eso|aquello|lo de|algo|hazlo|arreglalo|cosas|cosa|etc|stuff|thing|things|whatever|somehow)\b/g, n)
