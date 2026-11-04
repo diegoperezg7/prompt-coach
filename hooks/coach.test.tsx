@@ -15,6 +15,7 @@ const opened: string[] = []
 const statuses: (string | undefined)[] = []
 const submitted: string[] = []
 let box = 'arregla el login'
+let placed = true
 
 function engine(on: Parameters<Parameters<typeof test>[1]>[1], model: unknown, fills: string[] = [], rows: { role: 'user' | 'assistant'; text: string; toolUses: never[] }[] = []) {
   on('session.messages', () => ({ value: rows }))
@@ -22,7 +23,7 @@ function engine(on: Parameters<Parameters<typeof test>[1]>[1], model: unknown, f
   on('ui.status', (_, e) => { statuses.push(e.text); return { value: undefined } })
   on('fs.write', () => ({ value: undefined }))
   on('command.register', () => ({ value: { command: 'coach' } }))
-  on('ui.open', (_, e) => { opened.push(e.id); return { value: { isPlaced: true } } })
+  on('ui.open', (_, e) => { opened.push(e.id); return { value: placed ? { isPlaced: true } : { isPlaced: false, reason: 'narrow' } } })
   on('ui.close', () => ({ value: undefined }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('session.cwd', () => ({ value: '/tmp/demo-app' }))
@@ -284,4 +285,14 @@ test('terminal and desktop adapt to the room: narrow band keeps score and button
       await ui.unmount()
     }
   }
+})
+
+test('on a terminal too narrow for the pane, /coach puts the proposal in its answer instead of promising a pane', async ($, on) => {
+  engine(on, { isAnswered: true, text: 'Objetivo\nArregla el login.', usage: USAGE })
+  placed = false
+
+  await $.session.start({ cwd: '/tmp/demo-app', surface: 'terminal', isInteractive: true })
+  const ran = await $.command.run({ command: 'coach', args: 'arregla el login', origin: ORIGIN, presentation: 'transcript' })
+  expect(ran.text).toMatch(/demasiado estrecho para el panel[\s\S]*\n\nObjetivo\nArregla el login\.$/)
+  placed = true
 })

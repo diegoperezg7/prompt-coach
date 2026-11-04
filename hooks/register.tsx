@@ -27,6 +27,7 @@ const UI = {
     cancel: 'Cancelar', send: 'Enviar propuesta', sendOriginal: 'Enviar original', copied: 'Propuesta copiada', notCopied: 'No se pudo copiar',
     held: 'Retenido, no se ha enviado. En el panel: Enviar propuesta, Enviar original, Mejorar de nuevo o Cancelar.',
     notFilled: 'No se pudo escribir en el borrador', ready: 'Prompt Coach: propuesta lista en el panel.',
+    narrow: 'Prompt Coach: el terminal es demasiado estrecho para el panel; esta es la propuesta (cópiala o ensancha la ventana para verla en el panel):',
     empty: 'Escribe primero un borrador, o pásalo como argumento: /coach <petición>',
     idle: 'Prompt Coach: escribe un borrador y pulsa «Mejorar prompt» o /coach',
     tooLong: 'El borrador supera los 8000 caracteres.',
@@ -42,6 +43,7 @@ const UI = {
     cancel: 'Cancel', send: 'Send proposal', sendOriginal: 'Send original', copied: 'Proposal copied', notCopied: 'Could not copy',
     held: 'Held, not sent. In the pane: Send proposal, Send original, Improve again or Cancel.',
     notFilled: 'Could not write the draft', ready: 'Prompt Coach: proposal ready in the pane.',
+    narrow: 'Prompt Coach: the terminal is too narrow for the pane; here is the proposal (copy it or widen the window to see it in the pane):',
     empty: 'Type a draft first, or pass it as an argument: /coach <request>',
     idle: 'Prompt Coach: type a draft and press "Improve prompt" or /coach',
     tooLong: 'The draft exceeds 8000 characters.',
@@ -76,15 +78,22 @@ let hasBand = false
 // Haiku: en bench/ da casi la misma nota y utilidad que Sonnet a 1/16 del coste (README, Benchmark).
 const MODEL = 'haiku'
 
+const openPane = ($: EngineInterface) =>
+  $.ui.open({ id: PANE, title: 'Prompt Coach', focus: true, closeOnEscape: true, rows: 24 }).catch(() => ({ isPlaced: false as const }))
+
 async function improve($: EngineInterface, text: string) {
   const lang = langOf(text)
-  const cwd = await $.session.cwd()
-  const before = assess(text, { cwd, lang }).score
+  const before = assess(text, { lang }).score
   edited = null
-  await update($, proposal, () => ({
+  // Estado y panel se piden antes del primer await, mientras sigue en curso la pulsación o el comando de la
+  // persona: un panel abierto después cuenta como no pedido y en un terminal estrecho no se coloca.
+  const busy = update($, proposal, () => ({
     original: text, text: '', lang, before, after: before, origin: 'local' as const, changes: [], missing: [], passes: 0, isBusy: true, isApplied: false,
   }))
-  await $.ui.open({ id: PANE, title: 'Prompt Coach', focus: true, closeOnEscape: true, rows: 24 }).catch(() => undefined)
+  const opening = openPane($)
+  await busy
+  await opening
+  const cwd = await $.session.cwd()
 
   const context = recentContext(await $.session.messages(), lang)
   // Lo que el agente ya sabe: una ruta de la propuesta solo puntúa si sale de aquí.
@@ -261,12 +270,14 @@ export const register: Register = on => {
     const t = UI[langOf(text)]
     if (!isCoachable(text)) return { text: t.empty }
     if (text.length > MAX_DRAFT) return { text: t.tooLong }
-    if (hasBand) {
+    // Con panel colocado, el comando responde al momento y la propuesta llega al panel. Si el terminal es
+    // demasiado estrecho para colocarlo, la propuesta va en la respuesta del comando.
+    if (hasBand && (await openPane($)).isPlaced) {
       void improve($, text)
       return { text: t.ready }
     }
     await improve($, text)
-    return { text: `${t.ready}\n\n${improved}` }
+    return { text: `${hasBand ? t.narrow : t.ready}\n\n${improved}` }
   })
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
