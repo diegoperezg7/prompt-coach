@@ -1,6 +1,6 @@
 {
   "name": "prompt-coach",
-  "version": "1.7.3",
+  "version": "1.7.4",
   "description": "Scores your prompt draft as you type and rewrites it before you send it. Choose the model, language and verbosity. Terminal, desktop and VS Code.",
   "author": {
     "name": "Diego Pérez"

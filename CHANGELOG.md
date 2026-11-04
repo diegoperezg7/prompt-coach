@@ -2,6 +2,13 @@
 
 All notable changes to Prompt Coach. Versions follow `.claude-plugin/plugin.json`.
 
+## 1.7.4 (2026-11-04)
+
+### Fixed
+
+- **Codex `$coach` gave an inflated 100.** The CLI's `score` counted the project folder as a verified location, and it had no way to know the original draft, so an invented path would count too. It now leaves the current folder out of context, and `--known '<draft>'` (which the skill passes when it scores its rewrite) makes a path the draft does not mention earn nothing, as in the Claude Code mod.
+- A path ending a sentence ("…/shop-app.") is read without the final dot.
+
 ## 1.7.3 (2026-11-04)
 
 Tested inside Codex 0.166.0 with the hook trusted in `/hooks`: a weak prompt is blocked, `raw:` goes through, and `$coach` scores, rewrites (41 → 90) and shows the proposal.

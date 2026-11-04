@@ -7,8 +7,12 @@ import { UI } from '../hooks/i18n.ts'
 /** Prefijo para enviar un prompt tal cual aunque sea flojo: el hook no puede reescribirlo, solo dejarlo pasar. */
 export const BYPASS = /^\s*raw:/i
 
-export function scoreReport(text: string) {
-  const a = assess(text)
+/**
+ * `cwd`: la carpeta del proyecto, que no cuenta como contexto (el agente ya la conoce). `known`: el borrador
+ * original al puntuar una reescritura; una ruta que no aparezca ahí no cuenta, para que inventarla no suba la nota.
+ */
+export function scoreReport(text: string, opts: { cwd?: string; known?: string } = {}) {
+  const a = assess(text, { cwd: opts.cwd, known: opts.known })
   const { lang, sure } = detectLang(text)
   return {
     score: a.score,

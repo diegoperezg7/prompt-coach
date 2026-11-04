@@ -24,3 +24,13 @@ test('score reports the score, the language and what is missing for 100', async 
   expect(r.missing.map(m => m.id)).toContain('aceptacion')
   expect(shouldHold('fix the login in src/auth/login.ts, it returns 500')).toBe(true)
 })
+
+test('score: the project folder is not context, and with the original draft a path it does not mention earns nothing', async () => {
+  const cwd = '/Users/demo/Proyectos/shop-app'
+  const ctx = (t: string, known?: string) => scoreReport(t, { cwd, known }).missing.find(m => m.id === 'contexto')?.points ?? 15
+  const proposal = 'Arregla el login que devuelve 500. Contexto: actúa en el proyecto actual: ' + cwd + '.'
+  expect(ctx(proposal)).toBeLessThan(15)
+  const invented = 'Arregla el login de src/auth/session.ts que devuelve 500.'
+  expect(ctx(invented, 'arregla el login que devuelve 500')).toBeLessThan(15)
+  expect(ctx(invented, 'arregla el login de src/auth/session.ts que devuelve 500')).toBe(15)
+})

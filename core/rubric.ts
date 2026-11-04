@@ -172,7 +172,8 @@ const BRANDS = /^(javascript|typescript|ios|ipados|macos|watchos|tvos|visionos|g
 export function anchorsOf(text: string, cwd = ''): string[] {
   const raw = String(text || '').replace(ATTACHMENT, ' ')
   const found = new Set<string>()
-  for (const re of [PATH, MENTION, SYMBOL]) for (const m of raw.matchAll(re)) found.add(m[0])
+  // Sin la puntuación de final de frase: «…/shop-app.» es la ruta «…/shop-app».
+  for (const re of [PATH, MENTION, SYMBOL]) for (const m of raw.matchAll(re)) found.add(m[0].replace(/[.,;:]+$/, ''))
   for (const m of raw.matchAll(CODE)) if (m[1]) found.add(m[1])
   // El directorio del proyecto ya lo sabe el agente: repetirlo no concreta nada.
   return [...found].filter(a => a.length > 2 && !BRANDS.test(a) && !/^[\d/.-]+$/.test(a) && !(cwd && (cwd === a || cwd.startsWith(a) || cwd.endsWith(a.replace(/^\//, '')))))

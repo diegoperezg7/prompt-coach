@@ -29,7 +29,8 @@ hook held.
    - Constraints: at least two: what not to touch, scope, dependencies.
    - Response format: what the agent must return when it finishes.
    - No vague references ("this", "stuff") and no bracketed gaps.
-3. Score your rewrite the same way, on stdin. If a criterion other than context or detail is still missing,
+3. Score your rewrite the same way, on stdin, adding `--known '<draft>'` with the original draft right after
+   `score`: a path or name that is not in the draft then earns no context points. If a criterion other than context or detail is still missing,
    fix that one and score again, once.
 4. Show the user the proposal, its score before and after, and what is still missing for 100 (usually a fact
    only they know, such as the file). Do not send or run anything: the user decides.
