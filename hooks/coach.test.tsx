@@ -573,3 +573,21 @@ test('/coach stats compares this week with the previous one and names the most m
   expect(held.drop).toBeDefined()
   expect((stored.get('history') as unknown[]).length).toBe(2)
 })
+
+test('without a model, the local engine answers in the draft language in all six; its gaps are marked and penalised', async ($, on) => {
+  const fills: string[] = []
+  engine(on, { isAnswered: false, reason: 'api-error', status: 529, error: 'overloaded', usage: USAGE }, fills)
+  await $.session.start({ cwd: '/tmp/demo-app', surface: 'vscode', isInteractive: true })
+  const cases: [string, RegExp][] = [
+    ['corrige la connexion du formulaire', /^Contexte\n[\s\S]*Objectif\n[\s\S]*À remplir :[\s\S]*Critères d’acceptation\n[\s\S]*Format de réponse\n/],
+    ['behebe den Login mit dem Formular', /^Kontext\n[\s\S]*Ziel\n[\s\S]*Ausfüllen:[\s\S]*Akzeptanzkriterien\n[\s\S]*Antwortformat\n/],
+    ['conserta o login do formulário que não funciona', /^Contexto\n[\s\S]*Objetivo\n[\s\S]*Preencha:[\s\S]*Critério de aceitação\n[\s\S]*Formato de resposta\n/],
+    ['correggi il login del modulo che non funziona', /^Contesto\n[\s\S]*Obiettivo\n[\s\S]*Da completare:[\s\S]*Criterio di accettazione\n[\s\S]*Formato della risposta\n/],
+  ]
+  for (const [draftText, shape] of cases) {
+    const ran = await $.command.run({ command: 'coach', args: draftText, origin: ORIGIN, presentation: 'transcript' })
+    const proposalText = String(ran.text).split('\n\n').slice(1).join('\n\n')
+    expect(proposalText).toMatch(shape)
+    expect(assess(proposalText).criteria.find(c => c.id === 'claridad')?.points).toBe(0)
+  }
+})

@@ -1,6 +1,8 @@
 // Núcleo de Prompt Coach: rúbrica, motor local y prompts del modelo.
 // Sin dependencias de ningún agente, para reutilizarlo en Claude Code, Codex, OpenCode, Cursor o Windsurf.
 
+import { COPY_EXTRA } from './copy.ts'
+
 export const LANGS = ['en', 'es', 'fr', 'de', 'pt', 'it'] as const
 export type Lang = (typeof LANGS)[number]
 export type Verbosity = 'concise' | 'balanced' | 'detailed'
@@ -213,7 +215,7 @@ const CUE = {
   // «devuelve» o «returns» a secas no cuentan: suelen describir el fallo («devuelve 500»), no la respuesta.
   format: /\b(formato|responde con|responde en|devuelveme|dame|entregame|resumen|resume|tabla|diff|en \d+ lineas|lista de cambios|output|respond with|reply with|give me|format|summary|table|bullet|list of changes|reponds avec|donne-moi|tableau|liste des changements|antwortformat|antworte mit|gib mir|zusammenfassung|tabelle|responda com|resumo|tabela|rispondi con|dammi|riepilogo|tabella)\b/,
   vague: /\b(esto|eso|aquello|lo de|algo|hazlo|arreglalo|cosas|cosa|etc|stuff|thing|things|whatever|somehow|truc|machin|zeug|irgendwie|coisa|coisas|troco|roba|coso)\b/g,
-  gapWord: /\b(rellena|fill in|tbd|xxx|remplir|ausfullen|preencha)\b/g,
+  gapWord: /\b(rellena|fill in|tbd|xxx|remplir|ausfullen|preencha|da completare)\b/g,
 }
 
 /**
@@ -426,7 +428,7 @@ export function projectName(cwd: string): string {
 
 // ---------- motor local (sin modelo) ----------
 
-type Copy = {
+export type Copy = {
   contexto: string; objetivo: string; necesito: string; aceptacion: string; alcance: string; salida: string
   proyecto: string; askBefore: string
   placeholder: Record<Intent, string>
@@ -437,8 +439,7 @@ type Copy = {
   acceptance: Record<Intent, string[]>
 }
 
-// El motor local, que solo actúa si el modelo no responde, tiene textos en español e inglés;
-// para los demás idiomas usa el inglés.
+// El motor local, que solo actúa si el modelo no responde: español e inglés aquí, el resto en copy.ts.
 const COPY: Record<'es' | 'en', Copy> = {
   es: {
     contexto: 'Contexto', objetivo: 'Objetivo', necesito: 'Qué necesito', aceptacion: 'Criterio de aceptación',
@@ -573,7 +574,7 @@ function cleanRequest(text: string): string {
 
 export function buildPrompt(text: string, cwd: string) {
   const lang: Lang = langOf(text)
-  const copy = COPY[lang === 'es' ? 'es' : 'en']
+  const copy = lang === 'es' || lang === 'en' ? COPY[lang] : COPY_EXTRA[lang]
   const intent = detectIntent(text)
   const words = text.trim().split(/\s+/).filter(Boolean).length
   const anchored = anchorsOf(text, cwd).length > 0
