@@ -1,5 +1,16 @@
 export type Lang = 'en' | 'es' | 'fr' | 'de' | 'pt' | 'it'
 
+/** Uso de una mejora, sumando sus llamadas al modelo: tokens exactos y coste medido por Claude Code. */
+export type Usage = {
+  calls: number
+  input: number
+  cached: number
+  output: number
+  /** Dólares; null si la sesión no lleva cuenta de coste. */
+  usd: number | null
+  ms: number
+}
+
 export type Proposal = {
   original: string
   text: string
@@ -16,8 +27,7 @@ export type Proposal = {
   ask?: 'contexto' | 'detalle'
   /** Llamadas al modelo que respondieron: 1, o 2 con la pasada de reparación. */
   passes: number
-  /** Tokens de entrada y salida sumados de todas las pasadas. */
-  tokens?: number
+  usage?: Usage
   isBusy: boolean
   isApplied: boolean
 }

@@ -5,6 +5,7 @@ import type { Register } from 'claude-code'
 import { assess, isQuestion, LANGS } from '../core/rubric.ts'
 import type { Lang } from '../core/rubric.ts'
 import { clearStaleBusy, improve, onDraft, openPane, recordScore, statsText } from './actions.ts'
+import { usageText } from './usage.ts'
 import { UI } from './i18n.ts'
 import { cfg, isCoachable, LAST_LANG, MAX_DRAFT, MODELS, PANE, ses, ui, uiLang } from './state.ts'
 import { bandTerminal, bandVscode, paneTerminal, paneVscode } from './views.tsx'
@@ -69,6 +70,7 @@ export const register: Register = (on, options) => {
   on('command.run', { command: 'coach' }, async ($, e) => {
     const typed = e.args.trim()
     if (typed === 'stats') return { text: await statsText($, uiLang('')) }
+    if (typed === 'usage') return { text: await usageText($, uiLang('')) }
     const text = (typed || (await $.prompt.read()).text).trim()
     const t = ui(text)
     if (!isCoachable(text)) return { text: t.empty }

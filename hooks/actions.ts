@@ -8,12 +8,14 @@ import {
 } from '../core/rubric.ts'
 import type { CriterionId, Lang } from '../core/rubric.ts'
 import { UI } from './i18n.ts'
+import { nowMs, recordCalls, sessionUsd, summarize } from './usage.ts'
+import type { Call } from './usage.ts'
 import { cfg, isCoachable, MAX_DRAFT, noteLang, PANE, RULE_FILES, ses, ui, uiLang } from './state.ts'
 
 // El motor exige que cada fichero declare las referencias de $.state que lee o escribe; actions.ts y
 // views.tsx declaran las mismas (misma clave y misma forma).
 const draft = atom({ plugin: 'prompt-coach', key: 'draft' } as const, '')
-const proposal = atom({ plugin: 'prompt-coach', key: 'proposal' } as const, null, { shape: 'proposal-3' })
+const proposal = atom({ plugin: 'prompt-coach', key: 'proposal' } as const, null, { shape: 'proposal-4' })
 
 function failureNote(r: ModelCompleteResult, lang: Lang): string {
   const t = UI[lang]
@@ -75,20 +77,37 @@ async function rewrite($: EngineInterface, text: string, lang: Lang, id: number,
   // Lo que el agente ya sabe: una ruta de la propuesta solo puntúa si sale de aquí.
   const known = [text, context, rules].join('\n')
   const opts = { cwd, context, rules }
-  const ask = (prompt: string) => $.model.complete({
-    model: used, system: systemPrompt(lang, cfg.verbosity), prompt, maxTokens: 900, effort: 'low', timeoutMs: 30_000,
-  }, { signal })
+  // Cada llamada se mide: tokens de su respuesta y coste como diferencia del total de la sesión (lo que cuenta /cost).
+  const calls: Call[] = []
+  async function ask(prompt: string, pass: 1 | 2) {
+    const usd0 = await sessionUsd($)
+    const t0 = await nowMs($)
+    const res = await $.model.complete({
+      model: used, system: systemPrompt(lang, cfg.verbosity), prompt, maxTokens: 900, effort: 'low', timeoutMs: 30_000,
+    }, { signal })
+    const t1 = await nowMs($)
+    const usd1 = await sessionUsd($)
+    const u = res.usage
+    calls.push({
+      t: t0, model: used, pass,
+      input: u.input_tokens + u.cache_read_input_tokens + u.cache_creation_input_tokens,
+      cached: u.cache_read_input_tokens,
+      output: u.output_tokens,
+      usd: usd0 !== null && usd1 !== null ? Math.max(0, usd1 - usd0) : null,
+      ms: t1 - t0,
+      ok: res.isAnswered,
+    })
+    return res
+  }
 
-  const r = await ask(rewritePrompt(text, opts))
+  const r = await ask(rewritePrompt(text, opts), 1)
   let best = r.isAnswered ? keepAttachments(text, unfence(r.text)) : ''
   let passes = r.isAnswered ? 1 : 0
-  let tokens = r.usage.input_tokens + r.usage.cache_read_input_tokens + r.usage.cache_creation_input_tokens + r.usage.output_tokens
   // Segunda pasada dirigida: solo si quedan criterios que el modelo puede cubrir sin inventar datos.
   if (best) {
     const a = assess(best, { known, cwd })
     if (a.score < 100 && isRepairable(a) && !signal.aborted) {
-      const r2 = await ask(repairPrompt(text, best, a, opts))
-      tokens += r2.usage.input_tokens + r2.usage.cache_read_input_tokens + r2.usage.cache_creation_input_tokens + r2.usage.output_tokens
+      const r2 = await ask(repairPrompt(text, best, a, opts), 2)
       if (r2.isAnswered) {
         passes = 2
         const second = keepAttachments(text, unfence(r2.text))
@@ -108,7 +127,7 @@ async function rewrite($: EngineInterface, text: string, lang: Lang, id: number,
           missing: describeMissing(after, uiLang(text)),
           ask: askFor(after),
           passes,
-          tokens: passes ? tokens : undefined,
+          usage: calls.length ? summarize(calls) : undefined,
           origin: best ? ('model' as const) : ('local' as const),
           model: best ? used : undefined,
           note: best ? undefined : failureNote(r, uiLang(text)),
@@ -117,6 +136,7 @@ async function rewrite($: EngineInterface, text: string, lang: Lang, id: number,
         }
       : p,
   )
+  await recordCalls($, calls)
   return { text: out, score: after.score }
 }
 

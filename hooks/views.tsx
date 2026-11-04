@@ -6,12 +6,13 @@ import type { EngineInterface, RenderInput } from 'claude-code'
 import { assess, isQuestion } from '../core/rubric.ts'
 import { addFact, apply, dismiss, improve, improveFromBox, sendAs, startPoll, undo } from './actions.ts'
 import { UI } from './i18n.ts'
+import { usageLine } from './usage.ts'
 import { gapHint, HINT_COLS, isCoachable, NARROW, paneLayout, ses, tone, ui } from './state.ts'
 
 // El motor exige que cada fichero declare las referencias de $.state que lee o escribe; actions.ts y
 // views.tsx declaran las mismas (misma clave y misma forma).
 const draft = atom({ plugin: 'prompt-coach', key: 'draft' } as const, '')
-const proposal = atom({ plugin: 'prompt-coach', key: 'proposal' } as const, null, { shape: 'proposal-3' })
+const proposal = atom({ plugin: 'prompt-coach', key: 'proposal' } as const, null, { shape: 'proposal-4' })
 
 type BandEvent = RenderInput<'AbovePrompt'>
 type PaneEvent = RenderInput<'Pane'>
@@ -96,6 +97,7 @@ export async function paneVscode($: EngineInterface, e: PaneEvent) {
         </Text>
         <Text dimColor>{p.origin === 'model' ? `${t.fromModel}: ${p.model}` : t.fromLocal}</Text>
       </Box>
+      {p.usage !== undefined && <Text key="usage" dimColor>{usageLine(p.usage, p.model ?? '', p.lang)}</Text>}
       {p.note !== undefined && <Text color="warning">{p.note}</Text>}
       {p.missing.length > 0 && <Text dimColor>{t.toFull}: {p.missing.join('; ')}</Text>}
       {p.ask !== undefined && (
@@ -151,9 +153,10 @@ export async function paneTerminal($: EngineInterface, e: PaneEvent) {
   const reasons = cols >= 60 && !short
   const missing = p.missing.length > 0 ? `${t.toFull}: ${p.missing.map(m => (reasons ? m : m.replace(/ \(.*\)$/, ''))).join('; ')}` : ''
   const changes = p.changes.length > 0 ? `${t.added}: ${p.changes.join(', ')}` : ''
+  const usage = p.usage !== undefined ? usageLine(p.usage, p.model ?? '', p.lang) : ''
   const labels = p.isApplied ? [t.applied, t.undo, t.again, t.copy, t.cancel] : [t.apply, t.copy, t.cancel]
   const { gap, rows } = paneLayout(e.props.scroll.bodyRows, cols, [
-    `${t.proposal} ${p.before}/100 → ${p.after}/100 ${t.fromModel}: ${p.model ?? ''}`, p.note ?? '', changes, missing,
+    `${t.proposal} ${p.before}/100 → ${p.after}/100 ${t.fromModel}: ${p.model ?? ''}`, usage, p.note ?? '', changes, missing,
     labels.map(l => `[ ${l} (x) ]`).join(' '),
     p.ask !== undefined ? t.askContexto : '',
   ])
@@ -187,6 +190,7 @@ export async function paneTerminal($: EngineInterface, e: PaneEvent) {
           {p.origin === 'model' ? `${t.fromModel}: ${p.model}` : t.fromLocal}
         </Text>
       </Box>
+      {usage !== '' && <Text key="usage" dimColor>{usage}</Text>}
       {p.note !== undefined && <Text color="warning">{p.note}</Text>}
       {changes !== '' && <Text dimColor>{changes}</Text>}
       {missing !== '' && <Text dimColor>{missing}</Text>}

@@ -283,7 +283,7 @@ test('terminal and desktop adapt to the room: narrow band keeps score and button
     }
 
     await $.command.run({ command: 'coach', args: 'arregla el login', origin: ORIGIN, presentation: 'transcript' })
-    for (const [bodyColumns, bodyRows, editor] of [[30, 10, 3], [60, 18, 11], [120, 40, 14]] as const) {
+    for (const [bodyColumns, bodyRows, editor] of [[30, 10, 3], [60, 18, 9], [120, 40, 14]] as const) {
       const ui = await $.ui.mount({ ...PANE, props: { ...PANE.props, bodyColumns, scroll: { offset: 0, bodyRows } }, surface })
       expect((await ui.find({ type: 'Input', key: 'proposal' }))?.props.rows).toBe(editor)
       for (const key of ['apply', 'copy', 'cancel']) expect(await ui.find({ type: 'Button', key })).toBeDefined()
@@ -590,4 +590,30 @@ test('without a model, the local engine answers in the draft language in all six
     expect(proposalText).toMatch(shape)
     expect(assess(proposalText).criteria.find(c => c.id === 'claridad')?.points).toBe(0)
   }
+})
+
+test('each model call records its exact tokens and the cost Claude Code measured; the pane totals them and /coach usage lists them', async ($, on) => {
+  const stored = new Map<string, unknown>()
+  let sessionUsd = 0.5
+  const CALL = { input_tokens: 600, output_tokens: 300, cache_read_input_tokens: 400, cache_creation_input_tokens: 0 }
+  engine(on, (prompt: string) => {
+    sessionUsd += 0.0006
+    return { isAnswered: true, text: /Your previous version/.test(prompt) ? FULL : 'Objetivo\nArregla el login.', usage: CALL }
+  }, [], ROWS)
+  on('store.get', (_, e) => ({ value: stored.get(e.key) }))
+  on('store.set', (_, e) => { stored.set(e.key, e.value); return { value: undefined } })
+  on('session.usage', () => ({ value: { startedAt: 0, context: { tokens: 0, window: 200000 }, rateLimits: [], cost: { usd: sessionUsd } } }))
+  await $.session.start({ cwd: '/tmp/demo-app', surface: 'vscode', isInteractive: true })
+  await $.command.run({ command: 'coach', args: 'arregla el login', origin: ORIGIN, presentation: 'transcript' })
+
+  const ui = await $.ui.mount({ ...PANE, surface: 'vscode' })
+  expect((await ui.find({ type: 'Text', text: /llamadas/ }))?.text).toBe('haiku · 2 llamadas · 2000 in (800 en caché) · 600 out · 0,0012 $ · 0,0 s')
+  await ui.unmount()
+
+  const calls = stored.get('usage') as { pass: number; input: number; cached: number; output: number; usd: number }[]
+  expect(calls.map(c => [c.pass, c.input, c.cached, c.output, Number(c.usd.toFixed(4))])).toEqual([[1, 1000, 400, 300, 0.0006], [2, 1000, 400, 300, 0.0006]])
+  const report = await $.command.run({ command: 'coach', args: 'usage', origin: ORIGIN, presentation: 'transcript' })
+  expect(report.text).toMatch(/Hoy: 2 llamadas · 2000 in · 600 out · 0,0012 \$/)
+  expect(report.text).toMatch(/Por modelo \(7 días\): haiku 2 llamadas/)
+  expect(report.text).toMatch(/haiku · pasada 2 · 1000 in \(400 en caché\) · 300 out · 0,0006 \$/)
 })
