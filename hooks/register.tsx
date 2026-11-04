@@ -3,7 +3,7 @@ import type { EngineInterface, ModelCompleteResult, Register } from 'claude-code
 
 import type { Proposal } from '../types'
 import {
-  assess, buildPrompt, describeMissing, detectLang, isQuestion, isRepairable, LABEL, topGap, keepAttachments, LANGS, langOf, recentContext, repairPrompt,
+  assess, buildPrompt, describeMissing, detectLang, isQuestion, isRepairable, LABEL, projectRulesBlock, topGap, keepAttachments, LANGS, langOf, recentContext, repairPrompt,
   rewritePrompt, systemPrompt, unfence, WEAK_BELOW,
 } from '../core/rubric.ts'
 import type { Lang, Verbosity } from '../core/rubric.ts'
@@ -26,6 +26,9 @@ let uiSetting: 'auto' | Lang = 'auto'
 const MODELS = ['haiku', 'sonnet', 'opus', 'session'] as const
 let model: string = 'haiku'
 let verbosity: Verbosity = 'balanced'
+// Opción `projectRules`: leer CLAUDE.md y AGENTS.md del proyecto como contexto de la reescritura.
+let projectRules = true
+const RULE_FILES = ['CLAUDE.md', 'AGENTS.md']
 // En `auto`, el idioma del borrador solo cuando la detección es segura; si no, el último seguro. Así la interfaz
 // no salta de idioma con las primeras palabras («fix» sin más se leería como español).
 let lastLang: Lang | null = null
@@ -108,9 +111,12 @@ async function rewrite($: EngineInterface, text: string, lang: Lang, id: number,
   const used = model === 'session' ? await $.session.model() : model
 
   const context = recentContext(await $.session.messages())
+  const rules = projectRules
+    ? projectRulesBlock(await Promise.all(RULE_FILES.map(async name => ({ name, text: await $.fs.read(`${cwd}/${name}`).catch(() => '') }))))
+    : ''
   // Lo que el agente ya sabe: una ruta de la propuesta solo puntúa si sale de aquí.
-  const known = [text, context].join('\n')
-  const opts = { cwd, context }
+  const known = [text, context, rules].join('\n')
+  const opts = { cwd, context, rules }
   const ask = (prompt: string) => $.model.complete({
     model: used, system: systemPrompt(lang, verbosity), prompt, maxTokens: 900, effort: 'low', timeoutMs: 30_000,
   }, { signal })
@@ -287,6 +293,7 @@ export const register: Register = (on, options) => {
   uiSetting = pick(options.language, ['auto', ...LANGS] as const, 'auto')
   model = pick(options.model, MODELS, 'haiku')
   verbosity = pick(options.verbosity, ['concise', 'balanced', 'detailed'] as const, 'balanced')
+  projectRules = options.projectRules !== false
 
   on('session.start', async ($, e, next) => {
     hasBand = e.surface === 'terminal' || e.surface === 'desktop'

@@ -358,17 +358,33 @@ export function systemPrompt(lang: Lang, verbosity: Verbosity = 'balanced'): str
   ].join('\n')
 }
 
+/**
+ * Reglas del proyecto (CLAUDE.md, AGENTS.md) como contexto: de ahí salen restricciones reales del repo en lugar
+ * de restricciones genéricas. Recortadas a `max` caracteres en total para acotar el coste.
+ */
+export function projectRulesBlock(files: { name: string; text: string }[], max = 4000): string {
+  const present = files.filter(f => f.text.trim())
+  if (!present.length) return ''
+  let room = max
+  const parts = present.map(f => {
+    const body = f.text.trim().slice(0, Math.max(0, room))
+    room -= body.length
+    return body ? `--- ${f.name} ---\n${body}` : ''
+  }).filter(Boolean)
+  return `Project rules (from ${present.map(f => f.name).join(', ')}; take constraints from the ones that apply to this task, do not copy unrelated rules):\n${parts.join('\n')}`
+}
+
 /** Mensaje de usuario de la primera reescritura. */
-export function rewritePrompt(draft: string, opts: { cwd?: string; context?: string }): string {
+export function rewritePrompt(draft: string, opts: { cwd?: string; context?: string; rules?: string }): string {
   const project = opts.cwd ? `Project: ${projectName(opts.cwd)} (${opts.cwd})` : ''
-  return [project, opts.context || '', `Draft to rewrite:\n${draft}`].filter(Boolean).join('\n\n')
+  return [project, opts.rules || '', opts.context || '', `Draft to rewrite:\n${draft}`].filter(Boolean).join('\n\n')
 }
 
 /**
  * Segunda pasada: solo si la primera dejó criterios incompletos que el modelo puede cubrir sin inventar.
  * Contexto y detalle dependen de datos: se piden solo si están en el borrador o la conversación.
  */
-export function repairPrompt(draft: string, previous: string, a: Assessment, opts: { cwd?: string; context?: string }): string {
+export function repairPrompt(draft: string, previous: string, a: Assessment, opts: { cwd?: string; context?: string; rules?: string }): string {
   const gaps = describeMissing(a, 'en').map(g => '- ' + g).join('\n')
   return [
     rewritePrompt(draft, opts),

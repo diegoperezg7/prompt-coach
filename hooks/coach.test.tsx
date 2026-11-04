@@ -522,3 +522,30 @@ test('when context is missing the pane asks for it; the answer joins the draft a
     await ui.unmount()
   }
 })
+
+const RULES = '# Reglas\n- Nunca uses Tailwind.\n- El login vive en src/auth/login.ts.'
+const readsRules = (on: Parameters<Parameters<typeof test>[1]>[1], reads: string[]) =>
+  on('fs.read', (_, e) => { reads.push(String(e.path)); if (String(e.path).endsWith('/CLAUDE.md')) return { value: RULES }; throw new Error('ENOENT') })
+
+test('projectRules (default on) sends CLAUDE.md to the rewrite and its paths count as known', async ($, on) => {
+  const reads: string[] = []
+  engine(on, { isAnswered: true, text: FULL.replace(/hooks\/register\.tsx/g, 'src/auth/login.ts'), usage: USAGE })
+  readsRules(on, reads)
+  await $.session.start({ cwd: '/tmp/demo-app', surface: 'vscode', isInteractive: true })
+  await $.command.run({ command: 'coach', args: 'arregla el login', origin: ORIGIN, presentation: 'transcript' })
+  expect(reads).toEqual(['/tmp/demo-app/CLAUDE.md', '/tmp/demo-app/AGENTS.md'])
+  expect(asked.at(-1)).toMatch(/Project rules \(from CLAUDE\.md;[\s\S]*Nunca uses Tailwind[\s\S]*Draft to rewrite:\narregla el login$/)
+  const ui = await $.ui.mount({ ...PANE, surface: 'vscode' })
+  expect(await ui.find({ type: 'Text', text: /Falta para 100/ })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('projectRules off reads nothing from the project', { options: { projectRules: false } }, async ($, on) => {
+  const reads: string[] = []
+  engine(on, { isAnswered: true, text: FULL, usage: USAGE })
+  readsRules(on, reads)
+  await $.session.start({ cwd: '/tmp/demo-app', surface: 'vscode', isInteractive: true })
+  await $.command.run({ command: 'coach', args: 'arregla el login', origin: ORIGIN, presentation: 'transcript' })
+  expect(reads).toEqual([])
+  expect(asked.at(-1)).not.toMatch(/Project rules/)
+})

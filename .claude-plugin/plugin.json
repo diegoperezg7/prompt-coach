@@ -45,6 +45,12 @@
         "balanced",
         "detailed"
       ]
+    },
+    "projectRules": {
+      "type": "boolean",
+      "title": "Project rules",
+      "description": "Read the project's CLAUDE.md and AGENTS.md (up to 4000 characters) so constraints come from the repo's own rules. Adds some tokens to each rewrite.",
+      "default": true
     }
   }
 }
