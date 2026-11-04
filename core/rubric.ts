@@ -166,6 +166,15 @@ export function anchorsOf(text: string, cwd = ''): string[] {
 }
 
 const has = (re: RegExp, text: string) => re.test(text)
+
+/** Lo que sigue a la cabecera hasta una línea en blanco o la siguiente cabecera («Restricciones:»); null si no está. */
+function sectionAfter(n: string, header: RegExp): string | null {
+  const m = header.exec(n)
+  if (!m) return null
+  const rest = n.slice(m.index + m[0].length).replace(/^[\s:：-]+/, '')
+  const end = rest.search(/\n\s*\n|\n[^\n:]{2,40}:\s*(?:\n|$)/)
+  return (end === -1 ? rest : rest.slice(0, end)).slice(0, 600)
+}
 const count = (re: RegExp, text: string) => new Set((text.match(re) || []).map(s => s.trim())).size
 
 // Pistas de cada criterio en los seis idiomas, sobre el texto normalizado (minúsculas, sin tildes).
@@ -176,7 +185,11 @@ const CUE = {
   errorWord: /\b(error|excepcion|exception|traceback|stack trace|mensaje|message|log|warning|aviso|erreur|fehler|meldung|fehlermeldung|erro|mensagem|errore|messaggio)\b/,
   example: /\b(?:por ejemplo|ejemplo|for example|example|caso|par exemple|exemple|zum beispiel|beispiel|exemplo|ad esempio|esempio)\b|\b(?:p\. ?ej|e\.g|i\.e|z\. ?b)\.(?=\W|$)/,
   expected: /\b(esperado|espero|deberia|en vez de|en lugar de|actualmente|ahora mismo|ahora|antes|despues|expected|should|instead of|currently|right now|before|after|attendu|devrait|au lieu de|actuellement|erwartet|sollte|statt|stattdessen|aktuell|derzeit|deveria|em vez de|atualmente|atteso|dovrebbe|invece di|attualmente)\b/,
-  acceptStrong: /\b(criterio|criterios|aceptacion|hecho cuando|terminado cuando|esta listo cuando|definition of done|done when|acceptance|criteres|critere|acceptation|termine quand|fini quand|akzeptanzkriterien|abnahmekriterien|fertig wenn|aceitacao|pronto quando|criteri|accettazione|finito quando)\b/,
+  // Cabecera de la sección de aceptación: por sí sola no dice nada; cuenta si lo que la sigue es comprobable.
+  acceptHeader: /\b(criterios? de aceptacion|aceptacion|acceptance criteria|acceptance|criteres? d'acceptation|acceptation|akzeptanzkriterien|abnahmekriterien|criterios? de aceitacao|aceitacao|criteri(?:o)? di accettazione|accettazione|definition of done)\b/,
+  doneWhen: /\b(hecho cuando|terminado cuando|esta listo cuando|done when|termine quand|fini quand|fertig wenn|pronto quando|finito quando)\b/,
+  // Un resultado observable: lo que hace que un criterio se pueda comprobar.
+  outcome: /\b(funciona|funcionan|works|working|aparece|aparecen|appears|muestra|shows|devuelve|returns|pasa|pasan|pass|passes|succeeds|ya no|no longer|carga|loads|se actualiza|updates|fonctionne|affiche|passe|reussit|funktioniert|zeigt|lauft|besteht|aktualisiert|mostra|passa|funziona|appare|carica|aggiorna|atualiza|cita|citan|cites|incluye|includes|contiene|contains|distingue|distinguishes|identifica|identifies|lista|lists|tiene|has|runs|resuelve|resolves|marca|marked|explica|explains|describe|describes|cubre|covers|existe|exists|cite|inclut|contient|identifie|liste|enthalt|nennt|unterscheidet|identifiziert|listet|inclui|contem|include|elenca|copre)\b/,
   acceptWeak: /\b(verifica|comprueba|comprobar|test|tests|prueba|pruebas|debe pasar|tiene que pasar|sin errores|check|verify|should pass|must pass|passes|verifie|doit passer|prufe|pruefe|muss bestehen|verifique|teste|deve passar|controlla|deve passare)\b/,
   // Solo límites con contenido: el nombre de la sección («Restricciones:») no cuenta, ni una palabra suelta
   // («solo, nunca»): tiene que ir seguida de aquello a lo que limita («solo cambia X», «nunca toques Y»).
@@ -229,8 +242,10 @@ export function assess(text: string, opts: { known?: string; cwd?: string } = {}
   add('detalle', detail >= 2 ? 15 : detail === 1 ? 8 : 0, detail === 1 ? 'oneDetail' : 'noDetail')
 
   // Criterio de aceptación: cómo se sabe que está hecho.
-  const acceptStrong = has(CUE.acceptStrong, n)
   const acceptWeak = has(CUE.acceptWeak, n)
+  const section = sectionAfter(n, CUE.acceptHeader)
+  const acceptStrong = has(CUE.doneWhen, n) || (section !== null && section.split(/\s+/).filter(Boolean).length >= 4 &&
+    [CUE.acceptWeak, CUE.outcome, CUE.expected, CUE.quantity].some(re => has(re, section)))
   add('aceptacion', acceptStrong && words >= 15 ? 20 : acceptStrong || acceptWeak ? 12 : 0, acceptStrong || acceptWeak ? 'weakAccept' : 'noAccept')
 
   // Restricciones: qué no tocar y hasta dónde llegar.

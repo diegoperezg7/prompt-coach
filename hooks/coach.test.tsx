@@ -439,3 +439,13 @@ test('if sending the proposal is refused, the person gets the original draft bac
   expect(fills.at(-1)).toBe('arregla el login')
   await ui.unmount()
 })
+
+test('the acceptance header alone scores nothing; checkable content under it does, in any language', async () => {
+  const acc = (t: string) => assess(t).criteria.find(c => c.id === 'aceptacion')?.points
+  expect(acc('Criterio de aceptación: sí. ' + 'palabra '.repeat(14))).toBe(0)
+  expect(acc('Acceptance criteria: yes. ' + 'word '.repeat(14))).toBe(0)
+  expect(acc('Arregla el login de src/auth/login.ts.\nCriterio de aceptación:\n- El login con credenciales válidas ya no devuelve 500.')).toBe(20)
+  expect(acc("Corrige la connexion dans src/auth/login.ts.\nCritères d'acceptation :\n- La page affiche le tableau de bord après la connexion.")).toBe(20)
+  expect(acc('Explica el pooler de Supabase del proyecto.\nCriterio de aceptación:\n- La explicación cita el archivo y la línea de la configuración.')).toBe(20)
+  expect(acc('Fix the login in src/auth/login.ts, it is done when the dashboard loads after signing in')).toBe(20)
+})
