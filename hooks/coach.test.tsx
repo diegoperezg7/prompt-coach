@@ -192,7 +192,7 @@ test('on vscode a weak work prompt is held with its proposal; solid or short one
 
   await $.session.start({ cwd: '/tmp/demo-app', surface: 'vscode', isInteractive: true })
   const held = await $.prompt.submit({ text: 'arregla el login', origin: { kind: 'composer' }, wait: false })
-  expect(held.drop).toMatch(/^Prompt Coach: Prompt flojo 5\/100 → \d+\/100\. Retenido[\s\S]*\n\nObjetivo\nArregla el login\.$/)
+  expect(held.drop).toMatch(/^Prompt Coach: Prompt flojo 5\/100 → \d+\/100\. Retenido, no se ha enviado\.[^\n]*$/)
 
   const ui = await $.ui.mount({ ...PANE, surface: 'vscode' })
   expect((await ui.find({ type: 'Text', text: /^Arregla el login\.$/ }))?.text).toBe('Arregla el login.')
@@ -707,4 +707,19 @@ test('holdPasted off: the terminal never holds, pasted or not', { options: { hol
   await $.session.start({ cwd: '/tmp/demo-app', surface: 'terminal', isInteractive: true })
   const dictation = pastedBlock('7b0c', 'arregla el login').trim()
   expect((await $.prompt.submit({ text: dictation, origin: { kind: 'composer' }, wait: false })).text).toBe(dictation)
+})
+
+test('after a held Enter the engine puts the draft back: the proposal stays; the person editing the draft drops it', async ($, on) => {
+  engine(on, { isAnswered: true, text: FULL, usage: USAGE })
+  await $.session.start({ cwd: '/tmp/demo-app', surface: 'terminal', isInteractive: true })
+  const dictation = pastedBlock('7b0c', 'arregla el login que devuelve error').trim()
+  expect((await $.prompt.submit({ text: dictation, origin: { kind: 'composer' }, wait: false })).drop).toBeDefined()
+  await $.prompt.change({ text: '[Pasted text #1 +1 lines]', cursor: 25, origin: { kind: 'engine' } })
+  let ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  expect(String((await ui.find({ type: 'Input', key: 'proposal' }))?.props.value)).toBe(FULL)
+  await ui.unmount()
+  await $.prompt.change({ text: 'otra cosa', cursor: 9, origin: { kind: 'history' } })
+  ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  expect(await ui.find({ type: 'Input', key: 'proposal' })).toBeUndefined()
+  await ui.unmount()
 })

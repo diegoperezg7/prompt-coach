@@ -236,10 +236,10 @@ export async function dismiss($: EngineInterface, restore = false) {
 }
 
 // Lo que hay en el compositor: teclear llega por prompt.edit, lo demás (historial, fill, clear) por prompt.change.
-export async function onDraft($: EngineInterface, text: string, isOwnFill: boolean) {
+export async function onDraft($: EngineInterface, text: string, keepProposal: boolean) {
   noteLang($, text)
   await update($, draft, () => text)
-  if (!isOwnFill && (await read($, proposal))) void dismiss($)
+  if (!keepProposal && (await read($, proposal))) void dismiss($)
   if (ses.hasBand) return
   if (!isCoachable(text) || isQuestion(text)) return $.ui.status(undefined)
   if (hasPasteChip(text)) return $.ui.status(pasteHint(text))

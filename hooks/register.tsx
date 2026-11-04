@@ -42,7 +42,10 @@ export const register: Register = (on, options) => {
   })
 
   on('prompt.change', async ($, e, next) => {
-    await onDraft($, e.text, e.origin.kind === 'plugin' && e.origin.name === 'prompt-coach')
+    // La propuesta solo se descarta si la persona cambia el borrador (historial, deshacer). Lo que mueve el motor
+    // no cuenta: tras retener un Enter devuelve el borrador al compositor, y eso no es seguir escribiendo.
+    const byPerson = e.origin.kind === 'history' || e.origin.kind === 'undo'
+    await onDraft($, e.text, !byPerson)
     return next(e)
   })
 
@@ -70,7 +73,8 @@ export const register: Register = (on, options) => {
       return pass()
     }
     const done = await improve($, e.text.trim())
-    return { drop: `Prompt Coach: ${t.weak} ${a.score}/100 → ${done.score}/100. ${t.held}\n\n${done.text}` }
+    // Una sola línea: el aviso de un Enter retenido no admite saltos de línea, y la propuesta ya está en el panel.
+    return { drop: `Prompt Coach: ${t.weak} ${a.score}/100 → ${done.score}/100. ${t.held}` }
   })
 
   on('command.run', { command: 'coach' }, async ($, e) => {
