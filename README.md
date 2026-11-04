@@ -35,7 +35,7 @@ A band above the composer scores every keystroke: amber below 60, green from the
 
 ## Improve it with one command
 
-From 60 columns the band also names the criterion that costs the most. `/coach` (or the band's button) rewrites the draft with the model you chose (Haiku by default), using the recent conversation, and opens a pane with the proposal. From there you can replace the draft, undo, improve again, copy or cancel; when a fact only you know is missing (the file, the exact error), the pane asks for just that and improves again with your answer. `/coach stats` shows this week's average against the previous one and the criterion you miss most. Real recording: the draft has no file, so the proposal stops at **93** and asks for it; with the answer, **100**.
+From 60 columns the band also names the criterion that costs the most. `/coach` (or the band's button) rewrites the draft with the model you chose (Haiku by default), using the recent conversation, and opens a pane with the proposal. From there you can replace the draft (the pane closes, and `/coach undo` brings yours back), copy it or cancel; when a fact only you know is missing (the file, the exact error), the pane asks for just that and improves again with your answer. `/coach stats` shows this week's average against the previous one and the criterion you miss most. Real recording: the draft has no file, so the proposal stops at **93** and asks for it; with the answer, **100**.
 
 <p align="center"><img src="assets/coach.gif" alt="The coach command proposes 41 to 93, asks which file, and with src/auth/login.ts reaches 100" width="100%"></p>
 

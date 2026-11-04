@@ -4,7 +4,7 @@ import type { Register } from 'claude-code'
 
 import { assess, isQuestion, LANGS } from '../core/rubric.ts'
 import type { Lang } from '../core/rubric.ts'
-import { clearStaleBusy, improve, onDraft, openPane, pasteHint, recordScore, statsText } from './actions.ts'
+import { clearStaleBusy, improve, onDraft, openPane, pasteHint, recordScore, statsText, undo } from './actions.ts'
 import { expandPastes, hasPasteChip, hasPastedBlock } from '../core/pastes.ts'
 import { usageText } from './usage.ts'
 import { UI } from './i18n.ts'
@@ -81,6 +81,7 @@ export const register: Register = (on, options) => {
     const typed = e.args.trim()
     if (typed === 'stats') return { text: await statsText($, uiLang('')) }
     if (typed === 'usage') return { text: await usageText($, uiLang('')) }
+    if (typed === 'undo') return { text: (await undo($)) ? ui('').undone : ui('').nothingToUndo }
     const text = (typed || (await $.prompt.read()).text).trim()
     const t = ui(text)
     if (!isCoachable(text)) return { text: t.empty }

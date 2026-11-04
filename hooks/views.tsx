@@ -4,7 +4,7 @@ import { atom, read } from 'claude-code'
 import type { EngineInterface, RenderInput } from 'claude-code'
 
 import { assess, isQuestion } from '../core/rubric.ts'
-import { addFact, apply, dismiss, improve, improveFromBox, pasteHint, sendAs, startPoll, undo } from './actions.ts'
+import { addFact, apply, dismiss, improve, improveFromBox, pasteHint, sendAs, startPoll } from './actions.ts'
 import { hasPasteChip } from '../core/pastes.ts'
 import { UI } from './i18n.ts'
 import { usageLine } from './usage.ts'
@@ -114,16 +114,11 @@ export async function paneVscode($: EngineInterface, e: PaneEvent) {
       )}
       <Box flexWrap="wrap" gap={1}>
         <Button key="send" label={t.send} variant="primary" onPress={() => sendAs($, p.text)} />
-        {p.isApplied ? (
-          <Button key="undo" label={t.undo} onPress={() => undo($)} />
-        ) : (
-          <Button key="apply" label={t.apply} onPress={() => apply($)} />
-        )}
+        <Button key="apply" label={t.apply} onPress={() => apply($)} />
         <Button key="again" label={t.again} onPress={() => improve($, p.original)} />
         <Button key="send-original" label={t.sendOriginal} onPress={() => sendAs($, p.original)} />
         <Button key="cancel" label={t.cancel} onPress={() => dismiss($, true)} />
       </Box>
-      {p.isApplied && <Text color="success" size="caption">{t.applied}</Text>}
       <Box flexDirection="column">
         {p.text.split('\n').map((line, i) => <Text key={`l${i}`}>{line || ' '}</Text>)}
       </Box>
@@ -163,7 +158,7 @@ export async function paneTerminal($: EngineInterface, e: PaneEvent) {
   const missing = p.missing.length > 0 ? `${t.toFull}: ${p.missing.map(m => (reasons ? m : m.replace(/ \(.*\)$/, ''))).join('; ')}` : ''
   const changes = p.changes.length > 0 ? `${t.added}: ${p.changes.join(', ')}` : ''
   const usage = p.usage !== undefined ? usageLine(p.usage, p.model ?? '', p.lang) : ''
-  const labels = [...(p.held ? [t.send, t.sendOriginal] : []), ...(p.isApplied ? [t.applied, t.undo, t.again, t.copy, t.cancel] : [t.apply, t.copy, t.cancel])]
+  const labels = [...(p.held ? [t.send, t.sendOriginal] : []), t.apply, t.copy, t.cancel]
   const { gap, rows } = paneLayout(e.props.scroll.bodyRows, cols, [
     `${t.proposal} ${p.before}/100 → ${p.after}/100 ${t.fromModel}: ${p.model ?? ''}`, usage, p.note ?? '', changes, missing,
     labels.map(l => `[ ${l} (x) ]`).join(' '),
@@ -173,13 +168,7 @@ export async function paneTerminal($: EngineInterface, e: PaneEvent) {
     <Box flexWrap="wrap" gap={1}>
       {p.held && <Button key="send" label={t.send} hotkey="e" variant="primary" onPress={() => sendAs($, ses.edited ?? p.text)} />}
       {p.held && <Button key="send-original" label={t.sendOriginal} hotkey="o" onPress={() => sendAs($, p.original)} />}
-      {p.isApplied ? (
-        <Text color="success">{t.applied}</Text>
-      ) : (
-        <Button key="apply" label={t.apply} hotkey="s" variant="primary" onPress={() => apply($)} />
-      )}
-      {p.isApplied && <Button key="undo" label={t.undo} hotkey="d" onPress={() => undo($)} />}
-      {p.isApplied && <Button key="again" label={t.again} hotkey="m" onPress={() => improve($, p.original)} />}
+      <Button key="apply" label={t.apply} hotkey="s" variant="primary" onPress={() => apply($)} />
       <Button
         key="copy"
         label={t.copy}

@@ -2,6 +2,12 @@
 
 All notable changes to Prompt Coach. Versions follow `.claude-plugin/plugin.json`.
 
+## 1.7.5 (2026-11-04)
+
+### Changed
+
+- **Replace draft closes the pane.** It stayed open after replacing, taking room and repeating the text already in the composer. It now fills the composer, closes the pane and shows a short notice; `/coach undo` puts the person's own draft back (once). The *Undo* and *Improve again* buttons that only showed after replacing are gone with it.
+
 ## 1.7.4 (2026-11-04)
 
 ### Fixed

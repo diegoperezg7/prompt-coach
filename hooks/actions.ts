@@ -170,14 +170,18 @@ export async function apply($: EngineInterface, text?: string) {
   const final = text ?? ses.edited ?? p.text
   const filled = await $.prompt.fill({ text: final })
   if (!filled.isFilled) return $.ui.toast(UI[p.lang].notFilled)
-  await update($, proposal, q => (q ? { ...q, text: final, isApplied: true } : q))
+  // Sustituido el borrador, el panel sobra: se cierra, y /coach undo devuelve el de la persona.
+  ses.lastOriginal = p.original
+  $.ui.toast(UI[p.lang].appliedToast)
+  await dismiss($)
 }
 
-export async function undo($: EngineInterface) {
-  const p = await read($, proposal)
-  if (!p) return
-  await $.prompt.fill({ text: p.original })
-  await update($, proposal, q => (q ? { ...q, isApplied: false } : q))
+/** /coach undo: vuelve a poner en el compositor el borrador que había antes de «Sustituir borrador». */
+export async function undo($: EngineInterface): Promise<boolean> {
+  if (ses.lastOriginal === null) return false
+  const filled = await $.prompt.fill({ text: ses.lastOriginal })
+  if (filled.isFilled) ses.lastOriginal = null
+  return filled.isFilled
 }
 
 // ponytail: sondeo del compositor cada segundo porque la extensión de VS Code no envía prompt.edit; quitar cuando lo envíe.

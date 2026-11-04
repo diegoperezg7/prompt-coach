@@ -41,6 +41,8 @@ export const ses = {
   // Una mejora a la vez: la nueva o Cancelar cortan la anterior, que deja de escribir en el panel.
   run: 0,
   stop: null as AbortController | null,
+  // El borrador de la persona antes de «Sustituir borrador», para devolverlo con /coach undo.
+  lastOriginal: null as string | null,
 }
 
 // En `auto`, el idioma del borrador solo cuando la detección es segura; si no, el último seguro. Así la interfaz

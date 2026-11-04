@@ -18,6 +18,7 @@ const systems: string[] = []
 const models: string[] = []
 const opened: string[] = []
 const statuses: (string | undefined)[] = []
+const toasts: string[] = []
 const submitted: string[] = []
 let box = 'arregla el login'
 let placed = true
@@ -27,6 +28,7 @@ function engine(on: Parameters<Parameters<typeof test>[1]>[1], model: unknown, f
   on('session.messages', () => ({ value: rows }))
   on('session.id', () => ({ value: 'test-session' }))
   on('ui.status', (_, e) => { statuses.push(e.text); return { value: undefined } })
+  on('ui.toast', (_, e) => { toasts.push(String(e.text)); return { value: undefined } })
   on('fs.write', () => ({ value: undefined }))
   on('command.register', () => ({ value: { command: 'coach' } }))
   on('ui.open', (_, e) => { opened.push(e.id); return { value: placed ? { isPlaced: true } : { isPlaced: false, reason: 'narrow' } } })
@@ -127,8 +129,18 @@ test('/coach falls back to the local engine and Replace fills the draft', async 
 
   await ui.press({ plugin: 'prompt-coach', key: 'apply' })
   expect(fills.at(-1)).toMatch(/^Contexto/)
-  expect((await ui.find({ type: 'Text', text: /Borrador sustituido/ }))?.text).toBe('Borrador sustituido')
+  expect(toasts.at(-1)).toBe('Borrador sustituido. Para recuperar el tuyo: /coach undo')
   await ui.unmount()
+
+  // Sustituido el borrador, el panel se cierra; /coach undo devuelve el de la persona, una vez.
+  const after = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  expect(await after.find({ type: 'Input', key: 'proposal' })).toBeUndefined()
+  await after.unmount()
+  const undone = await $.command.run({ command: 'coach', args: 'undo', origin: ORIGIN, presentation: 'transcript' })
+  expect(undone.text).toBe('Prompt Coach: tu borrador ha vuelto al compositor.')
+  expect(fills.at(-1)).toBe('arregla el login')
+  const again = await $.command.run({ command: 'coach', args: 'undo', origin: ORIGIN, presentation: 'transcript' })
+  expect(again.text).toMatch(/no hay ningún borrador sustituido/)
 })
 
 test('on vscode the command returns the whole proposal, the pane draws it as text lines and Send clears the composer', async ($, on) => {

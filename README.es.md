@@ -35,7 +35,7 @@ Una banda sobre el compositor puntúa cada tecla: ámbar por debajo de 60, verde
 
 ## Mejorar con un comando
 
-Desde 60 columnas la banda nombra además el criterio que más resta. `/coach` (o el botón de la banda) reescribe el borrador con el modelo que elijas (Haiku por defecto) usando la conversación reciente y abre un panel con la propuesta. Desde ahí puedes sustituir el borrador, deshacerlo, mejorarlo de nuevo, copiarlo o cancelar; cuando falta un dato que solo tú sabes (el archivo, el error literal), el panel te pide solo ese y mejora otra vez con tu respuesta. `/coach stats` enseña la media de esta semana frente a la anterior y el criterio que más te falta. Grabación real: el borrador no dice el archivo, así que la propuesta se queda en **93** y lo pregunta; con la respuesta, **100**.
+Desde 60 columnas la banda nombra además el criterio que más resta. `/coach` (o el botón de la banda) reescribe el borrador con el modelo que elijas (Haiku por defecto) usando la conversación reciente y abre un panel con la propuesta. Desde ahí puedes sustituir el borrador (el panel se cierra, y `/coach undo` te devuelve el tuyo), copiarlo o cancelar; cuando falta un dato que solo tú sabes (el archivo, el error literal), el panel te pide solo ese y mejora otra vez con tu respuesta. `/coach stats` enseña la media de esta semana frente a la anterior y el criterio que más te falta. Grabación real: el borrador no dice el archivo, así que la propuesta se queda en **93** y lo pregunta; con la respuesta, **100**.
 
 <p align="center"><img src="assets/coach-es.gif" alt="El comando coach propone de 41 a 93, pregunta el archivo y con src/auth/login.ts llega a 100" width="100%"></p>
 
