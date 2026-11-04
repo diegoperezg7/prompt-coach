@@ -4,9 +4,9 @@ import type { Register } from 'claude-code'
 
 import { assess, isQuestion, LANGS } from '../core/rubric.ts'
 import type { Lang } from '../core/rubric.ts'
-import { clearStaleBusy, improve, onDraft, openPane } from './actions.ts'
+import { clearStaleBusy, improve, onDraft, openPane, recordScore, statsText } from './actions.ts'
 import { UI } from './i18n.ts'
-import { cfg, isCoachable, LAST_LANG, MAX_DRAFT, MODELS, PANE, ses, ui } from './state.ts'
+import { cfg, isCoachable, LAST_LANG, MAX_DRAFT, MODELS, PANE, ses, ui, uiLang } from './state.ts'
 import { bandTerminal, bandVscode, paneTerminal, paneVscode } from './views.tsx'
 
 export { paneLayout } from './state.ts'
@@ -46,15 +46,21 @@ export const register: Register = (on, options) => {
   // Sin banda (VS Code) el motor no ve las teclas: el único momento de ofrecer la mejora es el Enter.
   // Se retiene solo un prompt flojo con intención de trabajo (no preguntas ni respuestas cortas), sin adjuntos.
   on('prompt.submit', async ($, e, next) => {
-    if ((ses.surface !== 'vscode' && ses.surface !== 'mobile') || e.command || e.isMeta || e.attachments?.length) return next(e)
-    if (e.origin.kind !== 'composer') return next(e)
     const text = e.text.trim()
-    if (!isCoachable(text) || isQuestion(text)) return next(e)
+    // Historial: la nota de lo que sale de verdad desde el compositor (no comandos ni preguntas); lo que se
+    // retiene no ha salido, y lo que se envía después desde el panel se registra en sendAs.
+    const pass = async () => {
+      if (e.origin.kind === 'composer' && !e.command && !e.isMeta && isCoachable(text) && !isQuestion(text)) await recordScore($, text)
+      return next(e)
+    }
+    if ((ses.surface !== 'vscode' && ses.surface !== 'mobile') || e.command || e.isMeta || e.attachments?.length) return pass()
+    if (e.origin.kind !== 'composer') return pass()
+    if (!isCoachable(text) || isQuestion(text)) return pass()
     const a = assess(text)
     const t = ui(text)
     if (!a.weak || a.intent === 'ask' || a.words < 3) {
       $.ui.status(`${a.weak ? t.weak : t.solid} ${a.score}/100`)
-      return next(e)
+      return pass()
     }
     const done = await improve($, text)
     return { drop: `Prompt Coach: ${t.weak} ${a.score}/100 → ${done.score}/100. ${t.held}\n\n${done.text}` }
@@ -62,6 +68,7 @@ export const register: Register = (on, options) => {
 
   on('command.run', { command: 'coach' }, async ($, e) => {
     const typed = e.args.trim()
+    if (typed === 'stats') return { text: await statsText($, uiLang('')) }
     const text = (typed || (await $.prompt.read()).text).trim()
     const t = ui(text)
     if (!isCoachable(text)) return { text: t.empty }

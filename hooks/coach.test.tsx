@@ -549,3 +549,27 @@ test('projectRules off reads nothing from the project', { options: { projectRule
   expect(reads).toEqual([])
   expect(asked.at(-1)).not.toMatch(/Project rules/)
 })
+
+test('/coach stats compares this week with the previous one and names the most missed criterion; held prompts are not counted', async ($, on) => {
+  const stored = new Map<string, unknown>()
+  engine(on, { isAnswered: true, text: FULL, usage: USAGE })
+  on('store.get', (_, e) => ({ value: stored.get(e.key) }))
+  on('store.set', (_, e) => { stored.set(e.key, e.value); return { value: undefined } })
+  const clock = mock.clock(on)
+  await $.session.start({ cwd: '/tmp/demo-app', surface: 'terminal', isInteractive: true })
+  let ran = await $.command.run({ command: 'coach', args: 'stats', origin: ORIGIN, presentation: 'transcript' })
+  expect(ran.text).toMatch(/no hay prompts registrados|no prompts recorded/)
+
+  await $.prompt.submit({ text: 'arregla el login', origin: { kind: 'composer' }, wait: false })
+  await clock.advance(8 * 24 * 60 * 60 * 1000)
+  await $.prompt.submit({ text: SOLID, origin: { kind: 'composer' }, wait: false })
+  await $.prompt.submit({ text: '/help', origin: { kind: 'composer' }, wait: false })
+  await $.prompt.submit({ text: '¿cómo funciona el pooler de supabase?', origin: { kind: 'composer' }, wait: false })
+  ran = await $.command.run({ command: 'coach', args: 'stats', origin: ORIGIN, presentation: 'transcript' })
+  expect(ran.text).toMatch(/This week: \d+\/100 \(1 prompts\) · previous week: 5\/100 \(1 prompts\), \+\d+\. Most missed criterion: /)
+
+  await $.session.start({ cwd: '/tmp/demo-app', surface: 'vscode', isInteractive: true })
+  const held = await $.prompt.submit({ text: 'arregla el login', origin: { kind: 'composer' }, wait: false })
+  expect(held.drop).toBeDefined()
+  expect((stored.get('history') as unknown[]).length).toBe(2)
+})

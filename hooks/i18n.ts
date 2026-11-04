@@ -21,6 +21,11 @@ const en = {
   askContexto: 'Which file, path or symbol? It counts as context for 100:',
   askDetalle: 'What happens now and what should happen (or the exact error)?',
   addFact: 'Add and improve',
+  statsNone: 'Prompt Coach: no prompts recorded yet. Scores are saved for 90 days each time you send a prompt.',
+  statsThis: 'This week',
+  statsPrev: 'previous week',
+  statsPrompts: 'prompts',
+  statsTop: 'Most missed criterion',
 }
 
 export type UiText = { [K in keyof typeof en]: string }
@@ -47,6 +52,11 @@ export const UI: Record<Lang, UiText> = {
     askContexto: '¿Qué archivo, ruta o símbolo? Cuenta como contexto para el 100:',
     askDetalle: '¿Qué pasa ahora y qué debería pasar (o el error literal)?',
     addFact: 'Añadir y mejorar',
+    statsNone: 'Prompt Coach: todavía no hay prompts registrados. La nota se guarda 90 días cada vez que envías un prompt.',
+    statsThis: 'Esta semana',
+    statsPrev: 'semana anterior',
+    statsPrompts: 'prompts',
+    statsTop: 'Criterio que más falla',
   },
   fr: {
     weak: 'Prompt faible', solid: 'Prompt solide', improve: 'Améliorer le prompt', refine: 'Affiner',
@@ -68,6 +78,11 @@ export const UI: Record<Lang, UiText> = {
     askContexto: 'Quel fichier, chemin ou symbole ? Il compte comme contexte pour 100 :',
     askDetalle: 'Que se passe-t-il maintenant et que devrait-il se passer (ou l’erreur exacte) ?',
     addFact: 'Ajouter et améliorer',
+    statsNone: 'Prompt Coach : aucun prompt enregistré pour l’instant. La note est gardée 90 jours à chaque envoi.',
+    statsThis: 'Cette semaine',
+    statsPrev: 'semaine précédente',
+    statsPrompts: 'prompts',
+    statsTop: 'Critère le plus manqué',
   },
   de: {
     weak: 'Schwacher Prompt', solid: 'Solider Prompt', improve: 'Prompt verbessern', refine: 'Feinschliff',
@@ -89,6 +104,11 @@ export const UI: Record<Lang, UiText> = {
     askContexto: 'Welche Datei, welcher Pfad oder welches Symbol? Zählt als Kontext für 100:',
     askDetalle: 'Was passiert jetzt und was sollte passieren (oder der genaue Fehler)?',
     addFact: 'Ergänzen und verbessern',
+    statsNone: 'Prompt Coach: noch keine Prompts erfasst. Die Bewertung wird bei jedem gesendeten Prompt 90 Tage gespeichert.',
+    statsThis: 'Diese Woche',
+    statsPrev: 'Vorwoche',
+    statsPrompts: 'Prompts',
+    statsTop: 'Am häufigsten fehlendes Kriterium',
   },
   pt: {
     weak: 'Prompt fraco', solid: 'Prompt sólido', improve: 'Melhorar prompt', refine: 'Refinar',
@@ -110,6 +130,11 @@ export const UI: Record<Lang, UiText> = {
     askContexto: 'Qual arquivo, caminho ou símbolo? Conta como contexto para o 100:',
     askDetalle: 'O que acontece agora e o que deveria acontecer (ou o erro exato)?',
     addFact: 'Adicionar e melhorar',
+    statsNone: 'Prompt Coach: ainda não há prompts registrados. A nota é guardada por 90 dias a cada prompt enviado.',
+    statsThis: 'Esta semana',
+    statsPrev: 'semana anterior',
+    statsPrompts: 'prompts',
+    statsTop: 'Critério que mais falta',
   },
   it: {
     weak: 'Prompt debole', solid: 'Prompt solido', improve: 'Migliora prompt', refine: 'Rifinisci',
@@ -131,5 +156,10 @@ export const UI: Record<Lang, UiText> = {
     askContexto: 'Quale file, percorso o simbolo? Conta come contesto per il 100:',
     askDetalle: 'Cosa succede ora e cosa dovrebbe succedere (o l’errore esatto)?',
     addFact: 'Aggiungi e migliora',
+    statsNone: 'Prompt Coach: ancora nessun prompt registrato. Il voto si salva per 90 giorni a ogni invio.',
+    statsThis: 'Questa settimana',
+    statsPrev: 'settimana precedente',
+    statsPrompts: 'prompt',
+    statsTop: 'Criterio che manca più spesso',
   },
 }

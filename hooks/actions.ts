@@ -3,10 +3,10 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, ModelCompleteResult } from 'claude-code'
 
 import {
-  assess, buildPrompt, describeMissing, isQuestion, isRepairable, keepAttachments, langOf, projectRulesBlock,
+  assess, buildPrompt, describeMissing, LABEL, isQuestion, isRepairable, keepAttachments, langOf, projectRulesBlock,
   recentContext, repairPrompt, rewritePrompt, systemPrompt, unfence,
 } from '../core/rubric.ts'
-import type { Lang } from '../core/rubric.ts'
+import type { CriterionId, Lang } from '../core/rubric.ts'
 import { UI } from './i18n.ts'
 import { cfg, isCoachable, MAX_DRAFT, noteLang, PANE, RULE_FILES, ses, ui, uiLang } from './state.ts'
 
@@ -173,6 +173,7 @@ export async function sendAs($: EngineInterface, text: string) {
   const sent = await $.prompt.submit({ text })
   // Otro hook puede rechazar el envío: entonces el borrador de la persona vuelve al compositor.
   if (sent.drop !== undefined) await $.prompt.fill({ text: p?.original ?? text }).catch(() => undefined)
+  else await recordScore($, text)
 }
 
 // VS Code: el compositor de la extensión no manda teclas, así que el botón lee el borrador al pulsarlo.
@@ -211,4 +212,51 @@ export async function onDraft($: EngineInterface, text: string, isOwnFill: boole
   const a = assess(text)
   const t = ui(text)
   $.ui.status(`${a.weak ? t.weak : t.solid} ${a.score}/100 · ${t.hint}`)
+}
+
+// ---------- historial ----------
+
+// Nota de cada prompt enviado, 90 días, en el almacén del plugin (entre sesiones y proyectos).
+const HISTORY = 'history'
+const DAY = 24 * 60 * 60 * 1000
+type Entry = { t: number; score: number; missing: CriterionId[] }
+
+async function history($: EngineInterface): Promise<Entry[]> {
+  const raw = await $.store.get(HISTORY).catch(() => undefined)
+  return Array.isArray(raw) ? (raw as Entry[]).filter(e => typeof e?.t === 'number' && typeof e?.score === 'number') : []
+}
+
+// El historial es secundario: si el reloj o el almacén fallan, el envío sigue igual.
+export async function recordScore($: EngineInterface, text: string) {
+  try {
+    const now = await $.clock.now()
+    const a = assess(text)
+    const kept = (await history($)).filter(e => now - e.t < 90 * DAY).slice(-1999)
+    kept.push({ t: now, score: a.score, missing: a.missing.map(c => c.id) })
+    await $.store.set(HISTORY, kept)
+  } catch {
+    // sin historial esta vez
+  }
+}
+
+/** «Esta semana: 72 (14 prompts) · semana anterior: 61 (9), +11. Criterio que más falla: aceptación (64 %).» */
+export async function statsText($: EngineInterface, lang: Lang): Promise<string> {
+  const t = UI[lang]
+  const now = await $.clock.now()
+  const all = (await history($)).filter(e => now - e.t < 90 * DAY)
+  if (!all.length) return t.statsNone
+  const week = all.filter(e => now - e.t < 7 * DAY)
+  const prev = all.filter(e => now - e.t >= 7 * DAY && now - e.t < 14 * DAY)
+  const mean = (xs: Entry[]) => Math.round(xs.reduce((s, e) => s + e.score, 0) / xs.length)
+  const parts = [`${t.statsThis}: ${week.length ? `${mean(week)}/100 (${week.length} ${t.statsPrompts})` : '-'}`]
+  if (prev.length) {
+    const delta = week.length ? mean(week) - mean(prev) : 0
+    parts.push(`${t.statsPrev}: ${mean(prev)}/100 (${prev.length} ${t.statsPrompts})${week.length ? `, ${delta >= 0 ? '+' : ''}${delta}` : ''}`)
+  }
+  const pool = week.length ? week : all
+  const counts = new Map<CriterionId, number>()
+  for (const e of pool) for (const id of e.missing) counts.set(id, (counts.get(id) ?? 0) + 1)
+  const top = [...counts.entries()].sort((x, y) => y[1] - x[1])[0]
+  const line = `Prompt Coach · ${parts.join(' · ')}.`
+  return top ? `${line} ${t.statsTop}: ${LABEL[lang][top[0]]} (${Math.round((top[1] / pool.length) * 100)} %).` : line
 }
