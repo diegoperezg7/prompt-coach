@@ -765,3 +765,13 @@ test('a response format written as an infinitive counts, as Codex writes it ("Re
   expect(fmt('Enumerar los archivos modificados y cada prueba ejecutada con su resultado.')).toBe(10)
   expect(fmt('el endpoint devuelve 500 al guardar')).toBe(0)
 })
+
+test('typing a command or a couple of words does not change the remembered language ("/coach und" is not German)', async ($, on) => {
+  engine(on, { isAnswered: true, text: FULL, usage: USAGE })
+  await $.session.start({ cwd: '/tmp/demo-app', surface: 'terminal', isInteractive: true })
+  await $.prompt.edit({ origin: { kind: 'composer' }, text: 'arregla el login que devuelve 50', cursor: 32, start: 32, end: 32, inputText: '0' })
+  await $.prompt.edit({ origin: { kind: 'composer' }, text: '/coach un', cursor: 9, start: 9, end: 9, inputText: 'd' })
+  await $.prompt.edit({ origin: { kind: 'composer' }, text: 'und', cursor: 3, start: 3, end: 3, inputText: ' so' })
+  const ran = await $.command.run({ command: 'coach', args: 'undo', origin: ORIGIN, presentation: 'transcript' })
+  expect(ran.text).toMatch(/no hay ningún borrador sustituido/)
+})

@@ -57,7 +57,11 @@ export const ui = (text: string) => UI[uiLang(text)]
 
 // Fija el último idioma seguro y lo recuerda entre sesiones; desde eventos, nunca mientras se dibuja.
 export function noteLang($: EngineInterface, text: string) {
-  const d = detectLang(text)
+  // Ni comandos ni textos de menos de tres palabras: al teclear «/coach undo» pasa por «/coach und», y «und» es
+  // alemán; con tan poco texto la detección no es de fiar.
+  const t = text.trim()
+  if (t.startsWith('/') || t.split(/\s+/).filter(Boolean).length < 3) return
+  const d = detectLang(t)
   if (!d.sure || d.lang === ses.lastLang) return
   ses.lastLang = d.lang
   void $.store.set(LAST_LANG, d.lang).catch(() => undefined)

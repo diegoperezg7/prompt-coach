@@ -2,6 +2,12 @@
 
 All notable changes to Prompt Coach. Versions follow `.claude-plugin/plugin.json`.
 
+## 1.7.6 (2026-11-04)
+
+### Fixed
+
+- **The interface could switch to German while typing a command.** Typing `/coach undo` goes through `/coach und`, and "und" is German, so the language was remembered as German and the next message came out in German. The remembered language is no longer learnt from commands or from texts under three words.
+
 ## 1.7.5 (2026-11-04)
 
 ### Changed
