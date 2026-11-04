@@ -1,0 +1,6 @@
+{
+  "name": "diego-mods",
+  "owner": { "name": "Diego Pérez" },
+  "description": "Mods personales de Claude Code: Prompt Coach.",
+  "plugins": [{ "name": "prompt-coach", "source": "./" }]
+}
