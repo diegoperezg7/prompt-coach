@@ -20,5 +20,6 @@ jobs:
       - run: claude plugin validate .
       - run: claude plugin test .
       # La CLI que usa el adaptador de Codex: un prompt flojo se retiene, uno con raw: pasa.
-      - run: echo '{"prompt":"fix the login"}' | node --experimental-strip-types --no-warnings cli/prompt-coach.mts hook codex | grep -q '"decision":"block"'
-      - run: test -z "$(echo '{"prompt":"raw: fix the login"}' | node --experimental-strip-types --no-warnings cli/prompt-coach.mts hook codex)"
+      - run: |
+          echo '{"prompt":"fix the login"}' | node --experimental-strip-types --no-warnings cli/prompt-coach.mts hook codex | grep -q '"decision":"block"'
+          test -z "$(echo '{"prompt":"raw: fix the login"}' | node --experimental-strip-types --no-warnings cli/prompt-coach.mts hook codex)"
