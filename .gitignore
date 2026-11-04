@@ -1,4 +1,4 @@
 logs/
 .claude-plugin/types/
 .claude-plugin/tsconfig.json
-bench/results.json
+bench/results*.json

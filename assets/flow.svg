@@ -31,8 +31,8 @@
   <text class="s" x="331" y="88" text-anchor="middle">0-100 on every key</text>
 
   <rect class="hot" x="484" y="40" width="170" height="64" rx="12"/>
-  <text class="th" x="569" y="68" text-anchor="middle">Haiku rewrites</text>
-  <text class="sh" x="569" y="88" text-anchor="middle">with the rubric</text>
+  <text class="th" x="569" y="68" text-anchor="middle">The model rewrites</text>
+  <text class="sh" x="569" y="88" text-anchor="middle">Haiku, Sonnet or Opus</text>
 
   <rect class="box" x="704" y="34" width="148" height="76" rx="12"/>
   <text class="t" x="778" y="62" text-anchor="middle">Anything missing</text>

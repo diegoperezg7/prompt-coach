@@ -5,16 +5,17 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-1.2.1-7C3AED?style=flat-square">
+  <img alt="Version" src="https://img.shields.io/badge/version-1.3.0-7C3AED?style=flat-square">
   <img alt="Claude Code" src="https://img.shields.io/badge/Claude%20Code-mod-7C3AED?style=flat-square">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-16%20passing-15803d?style=flat-square">
-  <img alt="Model" src="https://img.shields.io/badge/model-Haiku-5b5b6b?style=flat-square">
-  <img alt="Languages" src="https://img.shields.io/badge/UI-EN%20%C2%B7%20ES-5b5b6b?style=flat-square">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-19%20passing-15803d?style=flat-square">
+  <img alt="Models" src="https://img.shields.io/badge/models-Haiku%20%C2%B7%20Sonnet%20%C2%B7%20Opus-5b5b6b?style=flat-square">
+  <img alt="Languages" src="https://img.shields.io/badge/languages-6-5b5b6b?style=flat-square">
   <img alt="License" src="https://img.shields.io/badge/license-MIT-5b5b6b?style=flat-square">
 </p>
 
 <p align="center">
-  A <b>Claude Code mod</b> that scores your prompt draft against a real rubric and rewrites it with Haiku before you send it.<br>
+  A <b>Claude Code mod</b> that scores your prompt draft against a real rubric and rewrites it before you send it.<br>
+  Pick the model, the language and how verbose the proposal is.<br>
   It never sends anything on its own: you always choose.
 </p>
 
@@ -28,13 +29,13 @@ A band above the composer scores every keystroke: amber below 60, green from the
 
 ## Improve it with one command
 
-`/coach` (or the band's button) rewrites the draft with Haiku, using the recent conversation, and opens a pane with the proposal. From there you can replace the draft, undo, improve again, copy or cancel. Real recording: **48 → 100**.
+`/coach` (or the band's button) rewrites the draft with the model you chose (Haiku by default), using the recent conversation, and opens a pane with the proposal. From there you can replace the draft, undo, improve again, copy or cancel. Real recording: **48 → 100**.
 
 <p align="center"><img src="assets/coach.gif" alt="The coach command opens the pane with a 48 to 100 proposal and replaces the draft" width="100%"></p>
 
 ## How it works
 
-<p align="center"><img src="assets/flow.svg" alt="Flow: draft, live rubric, Haiku rewrites, a second pass when needed, pane, you choose" width="88%"></p>
+<p align="center"><img src="assets/flow.svg" alt="Flow: draft, live rubric, the model rewrites, a second pass when needed, pane, you choose" width="88%"></p>
 
 ## An honest score
 
@@ -70,18 +71,19 @@ A band above the composer scores every keystroke: amber below 60, green from the
   </tr>
 </table>
 
-## Haiku or Sonnet
+## Haiku, Sonnet or Opus
 
-<p align="center"><img src="assets/benchmark.svg" alt="Haiku costs $0.0007 per rewrite against $0.0114 for Sonnet, with nearly the same score and usefulness" width="88%"></p>
+<p align="center"><img src="assets/benchmark.svg" alt="Cost per rewrite: Haiku $0.00055, Sonnet $0.0111, Opus $0.0239, with nearly the same score and usefulness" width="88%"></p>
 
-12 real drafts (`bench/cases.mts`), the same flow as the mod and a blind Opus judge scoring fidelity, invented facts and usefulness:
+16 real drafts in six languages (`bench/cases.mts`), the same flow as the mod and a blind Opus judge scoring fidelity, invented facts, usefulness and whether the proposal stays in the draft's language:
 
-| Model | Avg score | At 100 | Invented | Usefulness | Cost per rewrite | Latency |
-|---|---|---|---|---|---|---|
-| **Haiku** | 93.5 | 5/12 | 3 | 7.8/10 | **$0.0007** | **5.2 s** |
-| Sonnet | 95.3 | 5/12 | 1 | 8.0/10 | $0.0114 | 6.0 s |
+| Model | Avg score | At 100 | Invented | Usefulness | Right language | Cost per rewrite | Latency |
+|---|---|---|---|---|---|---|---|
+| **Haiku** (default) | 93.4 | 4/16 | 6 | 7.5/10 | 16/16 | **$0.00055** | **3.8 s** |
+| Sonnet | 93.5 | 4/16 | 6 | 7.9/10 | 16/16 | $0.0111 | 5.4 s |
+| Opus | 93.8 | 5/16 | 4 | 8.0/10 | 16/16 | $0.0239 | 7.5 s |
 
-Haiku is 16x cheaper with nearly the same quality, so it is the default. Rerun it with `node --experimental-strip-types bench/run.mts haiku,sonnet opus`.
+Opus writes slightly more useful proposals at 43x the cost of Haiku; the choice is yours with the `model` setting. Rerun it with `node --experimental-strip-types bench/run.mts haiku,sonnet,opus opus balanced`.
 
 ## Install
 
@@ -93,17 +95,25 @@ From the Claude Code prompt:
 
 Answer `y` to add the marketplace and pick the user scope: it then works in the terminal and in the VS Code extension, which share user plugins. From a shell: `claude plugin install prompt-coach --marketplace diegoperezg7/prompt-coach`.
 
-## Language
+## Settings
 
-English and Spanish interface. The plugin's `language` option (`/plugin`, Prompt Coach, configure) takes:
+Three options in `/plugin`, Prompt Coach, configure:
 
-| Value | Interface |
-|---|---|
-| `auto` (default) | follows the language of the draft |
-| `en` | always English |
-| `es` | always Spanish |
+| Option | Values | Default |
+|---|---|---|
+| `model` | `haiku`, `sonnet`, `opus`: the model that rewrites | `haiku` |
+| `language` | `auto`, `en`, `es`, `fr`, `de`, `pt`, `it`: interface language; `auto` follows the draft | `auto` |
+| `verbosity` | `concise`, `balanced`, `detailed`: length of the proposal | `balanced` |
 
-The proposal is always written in the draft's language, the one you work in.
+The rubric reads drafts in all six languages, and the proposal is always written in the draft's language. Verbosity, measured with Haiku over the 16 drafts:
+
+| Verbosity | Avg words | Avg score | Usefulness |
+|---|---|---|---|
+| `concise` | 101 | 89.5 | 7.9/10 |
+| `balanced` | 247 | 93.4 | 7.5/10 |
+| `detailed` | 332 | 93.4 | 7.8/10 |
+
+Shorter proposals leave less room for constraints and detail, so they score a little lower; the judge finds them just as useful.
 
 ## Surfaces
 
@@ -116,7 +126,7 @@ The proposal is always written in the draft's language, the one you work in.
 
 ```
 claude --plugin-dir .        # load without installing
-claude plugin test .         # 16 tests: terminal, desktop and VS Code, several widths and heights, both languages
+claude plugin test .         # 19 tests: terminal, desktop and VS Code, widths and heights, languages, settings
 claude plugin validate .
 ```
 
@@ -124,6 +134,7 @@ claude plugin validate .
 |---|---|
 | `core/rubric.ts` | rubric, model prompts and local engine, with no Claude Code dependency |
 | `hooks/register.tsx` | hooks, model calls, band and pane |
+| `hooks/i18n.ts` | interface texts in six languages |
 | `hooks/coach.test.tsx` | tests with the `claude-code/testing` kit |
 | `bench/` | model benchmark with a blind judge |
 | `types/index.d.ts` | the mod's state contract |

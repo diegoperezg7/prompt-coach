@@ -1,53 +1,51 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="880" height="330" viewBox="0 0 880 330" role="img" aria-labelledby="t d">
-  <title id="t">Haiku vs Sonnet</title>
-  <desc id="d">12 real drafts. Cost per rewrite: Haiku 0.0007 dollars, Sonnet 0.0114. Average score: 93.5 and 95.3. Usefulness per the judge: 7.8 and 8.0. Invented facts: 3 and 1.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="350" viewBox="0 0 880 350" role="img" aria-labelledby="t d">
+  <title id="t">Haiku, Sonnet or Opus · 16 real drafts in 6 languages</title>
+  <desc id="d">Cost per rewrite: Haiku $0.00055, Sonnet $0.0111, Opus $0.0239. Average score 93.4, 93.5 and 93.8. Usefulness per the judge 7.5, 7.9 and 8.0. Latency 3.8, 5.4 and 7.5 seconds.</desc>
   <style>
-    :root { --bg:#ffffff; --fg:#0b0b0f; --muted:#5b5b6b; --line:#e4e2ee; --track:#f1eff6; --accent:#7c3aed; --other:#9a98a8; }
-    @media (prefers-color-scheme: dark) { :root { --bg:#000000; --fg:#f4f3f8; --muted:#a3a1b3; --line:#2a2833; --track:#16141d; --accent:#a78bfa; --other:#6d6b7b; } }
+    :root { --bg:#ffffff; --fg:#0b0b0f; --muted:#5b5b6b; --line:#e4e2ee; --accent:#7c3aed; --other:#9a98a8; --third:#c9c7d3; }
+    @media (prefers-color-scheme: dark) { :root { --bg:#000000; --fg:#f4f3f8; --muted:#a3a1b3; --line:#2a2833; --accent:#a78bfa; --other:#6d6b7b; --third:#3f3d4a; } }
     text { font-family: Inter, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
   </style>
-  <rect x="0.5" y="0.5" width="879" height="329" rx="16" fill="var(--bg)" stroke="var(--line)"/>
-  <text x="32" y="46" font-size="21" font-weight="700" fill="var(--fg)">Haiku vs Sonnet · 12 real drafts</text>
+  <rect x="0.5" y="0.5" width="879" height="349" rx="16" fill="var(--bg)" stroke="var(--line)"/>
+  <text x="32" y="44" font-size="20" font-weight="700" fill="var(--fg)">Haiku, Sonnet or Opus · 16 real drafts in 6 languages</text>
   <g font-size="13" fill="var(--muted)">
-    <rect x="32" y="62" width="12" height="12" rx="3" fill="var(--accent)"/><text x="50" y="73">Haiku (default)</text>
-    <rect x="186" y="62" width="12" height="12" rx="3" fill="var(--other)"/><text x="204" y="73">Sonnet</text>
-    <text x="300" y="73">Blind judge: Opus. Same flow as the mod: pass and repair.</text>
+    <rect x="32" y="60" width="12" height="12" rx="3" fill="var(--accent)"/><text x="50" y="71">Haiku (default)</text>
+    <rect x="236" y="60" width="12" height="12" rx="3" fill="var(--other)"/><text x="254" y="71">Sonnet</text>
+    <rect x="326" y="60" width="12" height="12" rx="3" fill="var(--third)"/><text x="344" y="71">Opus</text>
+    <text x="410" y="71">Blind judge: Opus. Same flow as the mod.</text>
   </g>
-
-  <!-- cuatro columnas de 200 px -->
-  <g font-size="14">
-    <g transform="translate(32 100)">
-      <text x="0" y="0" font-weight="700" fill="var(--fg)">Cost per rewrite</text>
-      <text x="0" y="20" fill="var(--muted)" font-size="12">16x cheaper</text>
-      <rect x="20" y="190" width="56" height="12" rx="4" fill="var(--accent)"/>
-      <rect x="96" y="35" width="56" height="167" rx="4" fill="var(--other)"/>
-      <text x="48" y="182" text-anchor="middle" fill="var(--fg)" font-weight="700">$0.0007</text>
-      <text x="124" y="27" text-anchor="middle" fill="var(--fg)" font-weight="700">$0.0114</text>
-    </g>
-    <g transform="translate(240 100)">
-      <text x="0" y="0" font-weight="700" fill="var(--fg)">Average score</text>
-      <text x="0" y="20" fill="var(--muted)" font-size="12">both hit 100 in 5/12</text>
-      <rect x="20" y="48" width="56" height="154" rx="4" fill="var(--accent)"/>
-      <rect x="96" y="45" width="56" height="157" rx="4" fill="var(--other)"/>
-      <text x="48" y="40" text-anchor="middle" fill="var(--fg)" font-weight="700">93.5</text>
-      <text x="124" y="37" text-anchor="middle" fill="var(--fg)" font-weight="700">95.3</text>
-    </g>
-    <g transform="translate(448 100)">
-      <text x="0" y="0" font-weight="700" fill="var(--fg)">Usefulness (judge)</text>
-      <text x="0" y="20" fill="var(--muted)" font-size="12">out of 10</text>
-      <rect x="20" y="73" width="56" height="129" rx="4" fill="var(--accent)"/>
-      <rect x="96" y="70" width="56" height="132" rx="4" fill="var(--other)"/>
-      <text x="48" y="65" text-anchor="middle" fill="var(--fg)" font-weight="700">7.8</text>
-      <text x="124" y="62" text-anchor="middle" fill="var(--fg)" font-weight="700">8.0</text>
-    </g>
-    <g transform="translate(656 100)">
-      <text x="0" y="0" font-weight="700" fill="var(--fg)">Latency</text>
-      <text x="0" y="20" fill="var(--muted)" font-size="12">seconds per rewrite</text>
-      <rect x="20" y="91" width="56" height="111" rx="4" fill="var(--accent)"/>
-      <rect x="96" y="74" width="56" height="128" rx="4" fill="var(--other)"/>
-      <text x="48" y="83" text-anchor="middle" fill="var(--fg)" font-weight="700">5.2 s</text>
-      <text x="124" y="66" text-anchor="middle" fill="var(--fg)" font-weight="700">6.0 s</text>
-    </g>
-  </g>
-  <path d="M32 302.5 H848" stroke="var(--line)"/>
+  <text x="32" y="104" font-weight="700" fill="var(--fg)" font-size="14">Cost per rewrite</text>
+<text x="32" y="122" fill="var(--muted)" font-size="12">Opus 43x Haiku</text>
+<rect x="44" y="294" width="46" height="6" rx="4" fill="var(--accent)"/>
+<text x="67" y="286" text-anchor="middle" fill="var(--fg)" font-weight="700" font-size="12.5">$0.00055</text>
+<rect x="102" y="245" width="46" height="55" rx="4" fill="var(--other)"/>
+<text x="125" y="237" text-anchor="middle" fill="var(--fg)" font-weight="700" font-size="12.5">$0.0111</text>
+<rect x="160" y="180" width="46" height="120" rx="4" fill="var(--third)"/>
+<text x="183" y="172" text-anchor="middle" fill="var(--fg)" font-weight="700" font-size="12.5">$0.0239</text>
+<text x="244" y="104" font-weight="700" fill="var(--fg)" font-size="14">Average score</text>
+<text x="244" y="122" fill="var(--muted)" font-size="12">out of 100</text>
+<rect x="256" y="216" width="46" height="84" rx="4" fill="var(--accent)"/>
+<text x="279" y="208" text-anchor="middle" fill="var(--fg)" font-weight="700" font-size="12.5">93.4</text>
+<rect x="314" y="215" width="46" height="85" rx="4" fill="var(--other)"/>
+<text x="337" y="207" text-anchor="middle" fill="var(--fg)" font-weight="700" font-size="12.5">93.5</text>
+<rect x="372" y="214" width="46" height="86" rx="4" fill="var(--third)"/>
+<text x="395" y="206" text-anchor="middle" fill="var(--fg)" font-weight="700" font-size="12.5">93.8</text>
+<text x="456" y="104" font-weight="700" fill="var(--fg)" font-size="14">Usefulness (judge)</text>
+<text x="456" y="122" fill="var(--muted)" font-size="12">out of 10</text>
+<rect x="468" y="206" width="46" height="94" rx="4" fill="var(--accent)"/>
+<text x="491" y="198" text-anchor="middle" fill="var(--fg)" font-weight="700" font-size="12.5">7.5</text>
+<rect x="526" y="201" width="46" height="99" rx="4" fill="var(--other)"/>
+<text x="549" y="193" text-anchor="middle" fill="var(--fg)" font-weight="700" font-size="12.5">7.9</text>
+<rect x="584" y="200" width="46" height="100" rx="4" fill="var(--third)"/>
+<text x="607" y="192" text-anchor="middle" fill="var(--fg)" font-weight="700" font-size="12.5">8.0</text>
+<text x="668" y="104" font-weight="700" fill="var(--fg)" font-size="14">Latency</text>
+<text x="668" y="122" fill="var(--muted)" font-size="12">seconds</text>
+<rect x="680" y="240" width="46" height="60" rx="4" fill="var(--accent)"/>
+<text x="703" y="232" text-anchor="middle" fill="var(--fg)" font-weight="700" font-size="12.5">3.8 s</text>
+<rect x="738" y="215" width="46" height="85" rx="4" fill="var(--other)"/>
+<text x="761" y="207" text-anchor="middle" fill="var(--fg)" font-weight="700" font-size="12.5">5.4 s</text>
+<rect x="796" y="183" width="46" height="117" rx="4" fill="var(--third)"/>
+<text x="819" y="175" text-anchor="middle" fill="var(--fg)" font-weight="700" font-size="12.5">7.5 s</text>
+  <path d="M32 300.5 H848" stroke="var(--line)"/>
+  <text x="32" y="328" font-size="11.5" fill="var(--muted)">Average score axis starts at 80.</text>
 </svg>

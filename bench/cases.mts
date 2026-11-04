@@ -32,4 +32,8 @@ export const CASES: { id: string; draft: string; context: string }[] = [
   },
   { id: 'i18n', draft: 'pon i18n en la app', context: '' },
   { id: 'arq-push', draft: 'diseña la arquitectura para el backend de notificaciones push', context: '' },
+  { id: 'fr-connexion', draft: 'corrige la connexion, elle plante quand le mot de passe est vide', context: '' },
+  { id: 'de-export', draft: 'der CSV-Export bricht bei Umlauten ab, bitte beheben', context: '' },
+  { id: 'pt-cache', draft: 'adiciona cache na listagem de produtos que está lenta', context: '' },
+  { id: 'it-test', draft: 'scrivi i test per il calcolo delle tasse nel carrello', context: '' },
 ]

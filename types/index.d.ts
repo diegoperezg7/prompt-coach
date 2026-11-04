@@ -1,4 +1,4 @@
-export type Lang = 'es' | 'en'
+export type Lang = 'en' | 'es' | 'fr' | 'de' | 'pt' | 'it'
 
 export type Proposal = {
   original: string

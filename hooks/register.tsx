@@ -3,10 +3,11 @@ import type { EngineInterface, ModelCompleteResult, Register } from 'claude-code
 
 import type { Proposal } from '../types'
 import {
-  assess, buildPrompt, describeMissing, isRepairable, keepAttachments, langOf, recentContext, repairPrompt,
-  rewritePrompt, SYSTEMS, unfence, WEAK_BELOW,
+  assess, buildPrompt, describeMissing, isRepairable, keepAttachments, LANGS, langOf, recentContext, repairPrompt,
+  rewritePrompt, systemPrompt, unfence, WEAK_BELOW,
 } from '../core/rubric.ts'
-import type { Lang } from '../core/rubric.ts'
+import type { Lang, Verbosity } from '../core/rubric.ts'
+import { UI } from './i18n.ts'
 
 const PANE = 'prompt-coach'
 const MAX_DRAFT = 8000
@@ -16,46 +17,14 @@ const proposal = atom({ plugin: 'prompt-coach', key: 'proposal' } as const, null
   shape: 'proposal-2',
 })
 
-// ---------- textos de la interfaz ----------
-
-const UI = {
-  es: {
-    weak: 'Prompt flojo', solid: 'Prompt sólido', improve: 'Mejorar prompt', refine: 'Afinar',
-    hint: '/coach para mejorarlo', busy: 'Mejorando con el modelo…', proposal: 'Propuesta',
-    fromModel: 'modelo', fromLocal: 'reglas locales', added: 'Añade', apply: 'Sustituir borrador',
-    applied: 'Borrador sustituido', undo: 'Deshacer', again: 'Mejorar de nuevo', copy: 'Copiar',
-    cancel: 'Cancelar', send: 'Enviar propuesta', sendOriginal: 'Enviar original', copied: 'Propuesta copiada', notCopied: 'No se pudo copiar',
-    held: 'Retenido, no se ha enviado. En el panel: Enviar propuesta, Enviar original, Mejorar de nuevo o Cancelar.',
-    notFilled: 'No se pudo escribir en el borrador', ready: 'Prompt Coach: propuesta lista en el panel.',
-    narrow: 'Prompt Coach: el terminal es demasiado estrecho para el panel; esta es la propuesta (cópiala o ensancha la ventana para verla en el panel):',
-    empty: 'Escribe primero un borrador, o pásalo como argumento: /coach <petición>',
-    idle: 'Prompt Coach: escribe un borrador y pulsa «Mejorar prompt» o /coach',
-    tooLong: 'El borrador supera los 8000 caracteres.',
-    noModel: 'El modelo no respondió', emptyReply: 'El modelo devolvió una respuesta vacía',
-    timeout: 'El modelo tardó demasiado (30 s)',
-    toFull: 'Falta para 100',
-  },
-  en: {
-    weak: 'Weak prompt', solid: 'Solid prompt', improve: 'Improve prompt', refine: 'Refine',
-    hint: '/coach to improve it', busy: 'Improving with the model…', proposal: 'Proposal',
-    fromModel: 'model', fromLocal: 'local rules', added: 'Adds', apply: 'Replace draft',
-    applied: 'Draft replaced', undo: 'Undo', again: 'Improve again', copy: 'Copy',
-    cancel: 'Cancel', send: 'Send proposal', sendOriginal: 'Send original', copied: 'Proposal copied', notCopied: 'Could not copy',
-    held: 'Held, not sent. In the pane: Send proposal, Send original, Improve again or Cancel.',
-    notFilled: 'Could not write the draft', ready: 'Prompt Coach: proposal ready in the pane.',
-    narrow: 'Prompt Coach: the terminal is too narrow for the pane; here is the proposal (copy it or widen the window to see it in the pane):',
-    empty: 'Type a draft first, or pass it as an argument: /coach <request>',
-    idle: 'Prompt Coach: type a draft and press "Improve prompt" or /coach',
-    tooLong: 'The draft exceeds 8000 characters.',
-    noModel: 'The model did not answer', emptyReply: 'The model returned an empty reply',
-    timeout: 'The model took too long (30 s)',
-    toFull: 'Missing for 100',
-  },
-} as const
 
 // Idioma de la interfaz: la opción `language` del plugin; en `auto`, el del borrador. La propuesta va
 // siempre en el idioma del borrador, que es en el que la persona trabaja.
 let uiSetting: 'auto' | Lang = 'auto'
+// Modelo de la reescritura y longitud de la propuesta: opciones `model` y `verbosity` del plugin.
+const MODELS = ['haiku', 'sonnet', 'opus'] as const
+let model: string = 'haiku'
+let verbosity: Verbosity = 'balanced'
 const uiLang = (text: string): Lang => (uiSetting === 'auto' ? langOf(text) : uiSetting)
 const ui = (text: string) => UI[uiLang(text)]
 
@@ -81,15 +50,13 @@ let improvedScore = 0
 // Sin banda (VS Code, móvil) el panel se abre al arrancar y hace de banda.
 let hasBand = false
 
-// Haiku: en bench/ da casi la misma nota y utilidad que Sonnet a 1/16 del coste (README, Benchmark).
-const MODEL = 'haiku'
 
 const openPane = ($: EngineInterface) =>
   $.ui.open({ id: PANE, title: 'Prompt Coach', focus: true, closeOnEscape: true, rows: 24 }).catch(() => ({ isPlaced: false as const }))
 
 async function improve($: EngineInterface, text: string) {
   const lang = langOf(text)
-  const before = assess(text, { lang }).score
+  const before = assess(text).score
   edited = null
   // Estado y panel se piden antes del primer await, mientras sigue en curso la pulsación o el comando de la
   // persona: un panel abierto después cuenta como no pedido y en un terminal estrecho no se coloca.
@@ -101,12 +68,12 @@ async function improve($: EngineInterface, text: string) {
   await opening
   const cwd = await $.session.cwd()
 
-  const context = recentContext(await $.session.messages(), lang)
+  const context = recentContext(await $.session.messages())
   // Lo que el agente ya sabe: una ruta de la propuesta solo puntúa si sale de aquí.
   const known = [text, context].join('\n')
-  const opts = { lang, cwd, context }
+  const opts = { cwd, context }
   const ask = (prompt: string) => $.model.complete({
-    model: MODEL, system: SYSTEMS[lang], prompt, maxTokens: 900, effort: 'low', timeoutMs: 30_000,
+    model, system: systemPrompt(lang, verbosity), prompt, maxTokens: 900, effort: 'low', timeoutMs: 30_000,
   })
 
   const r = await ask(rewritePrompt(text, opts))
@@ -115,20 +82,20 @@ async function improve($: EngineInterface, text: string) {
   let tokens = r.usage.input_tokens + r.usage.cache_read_input_tokens + r.usage.cache_creation_input_tokens + r.usage.output_tokens
   // Segunda pasada dirigida: solo si quedan criterios que el modelo puede cubrir sin inventar datos.
   if (best) {
-    const a = assess(best, { known, cwd, lang })
+    const a = assess(best, { known, cwd })
     if (a.score < 100 && isRepairable(a)) {
       const r2 = await ask(repairPrompt(text, best, a, opts))
       tokens += r2.usage.input_tokens + r2.usage.cache_read_input_tokens + r2.usage.cache_creation_input_tokens + r2.usage.output_tokens
       if (r2.isAnswered) {
         passes = 2
         const second = keepAttachments(text, unfence(r2.text))
-        if (assess(second, { known, cwd, lang }).score > a.score) best = second
+        if (assess(second, { known, cwd }).score > a.score) best = second
       }
     }
   }
   const local = best ? null : buildPrompt(text, cwd)
   const out = best || keepAttachments(text, local!.prompt)
-  const after = assess(out, { known, cwd, lang: uiLang(text) })
+  const after = assess(out, { known, cwd })
   improved = out
   improvedScore = after.score
   await update($, proposal, p =>
@@ -141,7 +108,7 @@ async function improve($: EngineInterface, text: string) {
           passes,
           tokens: passes ? tokens : undefined,
           origin: best ? ('model' as const) : ('local' as const),
-          model: best ? MODEL : undefined,
+          model: best ? model : undefined,
           note: best ? undefined : failureNote(r, uiLang(text)),
           changes: local ? local.changes : [],
           isBusy: false,
@@ -231,20 +198,19 @@ async function onDraft($: EngineInterface, text: string, isOwnFill: boolean) {
   $.ui.status(`${a.weak ? t.weak : t.solid} ${a.score}/100 · ${t.hint}`)
 }
 
-const DESCRIPTION = {
-  es: 'Prompt Coach: mejora el borrador del prompt con el modelo (o con reglas locales)',
-  en: 'Prompt Coach: improve the prompt draft with the model (or local rules)',
-  auto: 'Prompt Coach: improve the prompt draft / mejora el borrador',
-}
 
 export const register: Register = (on, options) => {
-  uiSetting = options.language === 'en' || options.language === 'es' ? options.language : 'auto'
+  const pick = <T extends string>(value: unknown, allowed: readonly T[], fallback: T): T =>
+    allowed.includes(value as T) ? (value as T) : fallback
+  uiSetting = pick(options.language, ['auto', ...LANGS] as const, 'auto')
+  model = pick(options.model, MODELS, 'haiku')
+  verbosity = pick(options.verbosity, ['concise', 'balanced', 'detailed'] as const, 'balanced')
 
   on('session.start', async ($, e, next) => {
     hasBand = e.surface === 'terminal' || e.surface === 'desktop'
     await $.command.register({
       name: 'coach',
-      description: DESCRIPTION[uiSetting],
+      description: UI[uiSetting === 'auto' ? 'en' : uiSetting].command,
     })
     return next(e)
   })

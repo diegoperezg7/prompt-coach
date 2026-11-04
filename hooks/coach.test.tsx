@@ -12,6 +12,8 @@ const PANE = {
 } as const
 
 const asked: string[] = []
+const systems: string[] = []
+const models: string[] = []
 const opened: string[] = []
 const statuses: (string | undefined)[] = []
 const submitted: string[] = []
@@ -29,7 +31,7 @@ function engine(on: Parameters<Parameters<typeof test>[1]>[1], model: unknown, f
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('session.cwd', () => ({ value: '/tmp/demo-app' }))
   on('session.model', () => ({ value: 'opus' }))
-  on('model.complete', (_, e) => { asked.push(String(e.prompt)); return { value: typeof model === 'function' ? model(String(e.prompt)) : model } })
+  on('model.complete', (_, e) => { asked.push(String(e.prompt)); systems.push(String(e.system)); models.push(e.model); return { value: typeof model === 'function' ? model(String(e.prompt)) : model } })
   on('prompt.read', () => ({ value: { text: box, cursor: box.length } }))
   on('prompt.change', (_, e) => ({ text: e.text }))
   on('prompt.submit', (_, e) => { submitted.push(e.text); return { text: e.text } })
@@ -136,8 +138,9 @@ test('on vscode the command returns the whole proposal, the pane draws it as tex
   await $.session.start({ cwd: '/tmp/demo-app', surface: 'vscode', isInteractive: true })
   const ran = await $.command.run({ command: 'coach', args: 'arregla el login', origin: ORIGIN, presentation: 'transcript' })
   expect(ran.text).toBe('Prompt Coach: propuesta lista en el panel.\n\nObjetivo\nArregla el login.')
-  expect(asked.at(-2)).toMatch(/Conversación reciente[\s\S]*user: acabo de cambiar el hook de prompt.edit[\s\S]*Borrador a reescribir:\narregla el login$/)
-  expect(asked.at(-1)).toMatch(/Tu versión anterior \(\d+\/100\)[\s\S]*Le falta:\n- objetivo/)
+  expect(asked.at(-2)).toMatch(/Recent conversation[\s\S]*user: acabo de cambiar el hook de prompt.edit[\s\S]*Draft to rewrite:\narregla el login$/)
+  expect(asked.at(-1)).toMatch(/Your previous version \(\d+\/100\)[\s\S]*It is missing:\n- goal/)
+  expect(systems.at(-1)).toMatch(/language of the draft\. It looks like Spanish[\s\S]*Objetivo:, Contexto:/)
 
   const ui = await $.ui.mount({ ...PANE, surface: 'vscode' })
   expect((await ui.find({ type: 'Text', text: /modelo: haiku/ }))?.text).toBe('modelo: haiku')
@@ -230,7 +233,7 @@ const ROWS = [
 
 test('a weak first rewrite gets one targeted repair pass and the better version wins at a real 100', async ($, on) => {
   asked.length = 0
-  engine(on, (prompt: string) => ({ isAnswered: true, text: /Tu versión anterior/.test(prompt) ? FULL : 'Objetivo\nArregla el login.', usage: USAGE }), [], ROWS)
+  engine(on, (prompt: string) => ({ isAnswered: true, text: /Your previous version/.test(prompt) ? FULL : 'Objetivo\nArregla el login.', usage: USAGE }), [], ROWS)
 
   await $.session.start({ cwd: '/tmp/demo-app', surface: 'vscode', isInteractive: true })
   await $.command.run({ command: 'coach', args: 'arregla el login', origin: ORIGIN, presentation: 'transcript' })
@@ -310,7 +313,7 @@ test('language: en draws the interface in English even for a Spanish draft; the 
   await $.session.start({ cwd: '/tmp/demo-app', surface: 'vscode', isInteractive: true })
   const ran = await $.command.run({ command: 'coach', args: 'arregla el login', origin: ORIGIN, presentation: 'transcript' })
   expect(ran.text).toBe('Prompt Coach: proposal ready in the pane.\n\nObjetivo\nArregla el login.')
-  expect(asked.at(-2)).toMatch(/Borrador a reescribir:\narregla el login$/)
+  expect(asked.at(-2)).toMatch(/Draft to rewrite:\narregla el login$/)
   const ui = await $.ui.mount({ ...PANE, surface: 'vscode' })
   expect((await ui.find({ type: 'Text', text: /Missing for 100/ }))?.text).toMatch(/goal 10\/20/)
   expect((await ui.find({ type: 'Button', key: 'send' }))?.text).toBe('Send proposal')
@@ -333,4 +336,49 @@ test('a status code the draft "returns" is not a response format, in either lang
   expect(en.criteria.find(c => c.id === 'formato')?.points).toBe(0)
   expect(es.score).toBe(en.score)
   expect(assess('Formato de respuesta: diff resumido por archivo.').criteria.find(c => c.id === 'formato')?.points).toBe(10)
+})
+
+test('model and verbosity options reach the rewrite: opus, concise', { options: { model: 'opus', verbosity: 'concise' } }, async ($, on) => {
+  engine(on, { isAnswered: true, text: FULL, usage: USAGE }, [], ROWS)
+  await $.session.start({ cwd: '/tmp/demo-app', surface: 'vscode', isInteractive: true })
+  await $.command.run({ command: 'coach', args: 'arregla el login', origin: ORIGIN, presentation: 'transcript' })
+  expect(models.at(-1)).toBe('opus')
+  expect(systems.at(-1)).toMatch(/At most 110 words in total/)
+  const ui = await $.ui.mount({ ...PANE, surface: 'vscode' })
+  expect(await ui.find({ type: 'Text', text: /modelo: opus/ })).toBeDefined()
+  await ui.unmount()
+})
+
+test('defaults: haiku and balanced length; an unknown stored value falls back to the default', { options: { model: 'gpt-9', verbosity: 'chatty' } }, async ($, on) => {
+  engine(on, { isAnswered: true, text: FULL, usage: USAGE }, [], ROWS)
+  await $.session.start({ cwd: '/tmp/demo-app', surface: 'vscode', isInteractive: true })
+  await $.command.run({ command: 'coach', args: 'arregla el login', origin: ORIGIN, presentation: 'transcript' })
+  expect(models.at(-1)).toBe('haiku')
+  expect(systems.at(-1)).toMatch(/At most 220 words/)
+})
+
+test('a French draft gets a French interface on auto, a French rewrite and a fair score', async ($, on) => {
+  const FR = [
+    'Objectif :', '- Corriger la connexion dans src/auth/login.ts qui renvoie une erreur 500 au lieu de connecter.',
+    'Contexte :', '- Fichier : src/auth/login.ts.',
+    'Détail :', "- Actuellement la page renvoie 500 ; attendu : l'utilisateur est connecté.",
+    "Critères d'acceptation :", '- Un test avec des identifiants valides passe et la suite est verte.',
+    'Contraintes :', "- Ne touche pas à l'inscription.", '- Sans nouvelles dépendances.',
+    'Format de réponse :', '- Diff résumé par fichier et résultat des tests.',
+  ].join('\n')
+  engine(on, { isAnswered: true, text: FR, usage: USAGE })
+  await $.session.start({ cwd: '/tmp/demo-app', surface: 'terminal', isInteractive: true })
+  await $.prompt.edit({ origin: { kind: 'composer' }, text: 'corrige la connexion dans src/auth/login.ts qui renvoie une erreur 50', cursor: 69, start: 69, end: 69, inputText: '0' })
+  const band = await $.ui.mount({ ...BAND, props: { ...BAND.props, bodyColumns: 80 }, surface: 'terminal' })
+  expect(await band.find({ type: 'Button', key: 'improve' })).toBeDefined()
+  expect((await band.find({ type: 'Button', key: 'improve' }))?.text).toMatch(/Améliorer le prompt|Affiner/)
+  await band.unmount()
+
+  await $.session.start({ cwd: '/tmp/demo-app', surface: 'vscode', isInteractive: true })
+  await $.command.run({ command: 'coach', args: 'corrige la connexion dans src/auth/login.ts qui renvoie une erreur 500', origin: ORIGIN, presentation: 'transcript' })
+  expect(systems.at(-1)).toMatch(/It looks like French[\s\S]*Objectif:, Contexte:/)
+  expect(assess(FR, { known: 'corrige la connexion dans src/auth/login.ts qui renvoie une erreur 500' }).score).toBe(100)
+  const ui = await $.ui.mount({ ...PANE, surface: 'vscode' })
+  expect((await ui.find({ type: 'Button', key: 'send' }))?.text).toBe('Envoyer la proposition')
+  await ui.unmount()
 })

@@ -1,10 +1,16 @@
 // Núcleo de Prompt Coach: rúbrica, motor local y prompts del modelo.
 // Sin dependencias de ningún agente, para reutilizarlo en Claude Code, Codex, OpenCode, Cursor o Windsurf.
 
-export type Lang = 'es' | 'en'
+export const LANGS = ['en', 'es', 'fr', 'de', 'pt', 'it'] as const
+export type Lang = (typeof LANGS)[number]
+export type Verbosity = 'concise' | 'balanced' | 'detailed'
 export type Intent = 'fix' | 'change' | 'test' | 'review' | 'refactor' | 'explain' | 'design' | 'feature' | 'ask'
 export type CriterionId = 'objetivo' | 'contexto' | 'detalle' | 'aceptacion' | 'restricciones' | 'formato' | 'claridad'
-export type Criterion = { id: CriterionId; points: number; max: number; why?: string }
+type WhyKey =
+  | 'short' | 'brief' | 'noAnchor' | 'unverified' | 'discovery' | 'vagueScope' | 'oneDetail' | 'noDetail'
+  | 'weakAccept' | 'noAccept' | 'oneLimit' | 'noLimit' | 'noFormat' | 'vague' | 'gaps'
+/** `why` es una clave: el texto sale en el idioma de quien lo lee (describeMissing), no en el del borrador. */
+export type Criterion = { id: CriterionId; points: number; max: number; why?: WhyKey }
 export type Assessment = {
   score: number
   weak: boolean
@@ -21,21 +27,18 @@ export const MAX: Record<CriterionId, number> = {
   objetivo: 20, contexto: 15, detalle: 15, aceptacion: 20, restricciones: 15, formato: 10, claridad: 5,
 }
 
+export const LANG_NAME: Record<Lang, string> = { en: 'English', es: 'Spanish', fr: 'French', de: 'German', pt: 'Portuguese', it: 'Italian' }
+
 export const LABEL: Record<Lang, Record<CriterionId, string>> = {
-  es: { objetivo: 'objetivo', contexto: 'contexto', detalle: 'detalle concreto', aceptacion: 'criterio de aceptación', restricciones: 'restricciones', formato: 'formato de respuesta', claridad: 'claridad' },
   en: { objetivo: 'goal', contexto: 'context', detalle: 'concrete detail', aceptacion: 'acceptance criteria', restricciones: 'constraints', formato: 'response format', claridad: 'clarity' },
+  es: { objetivo: 'objetivo', contexto: 'contexto', detalle: 'detalle concreto', aceptacion: 'criterio de aceptación', restricciones: 'restricciones', formato: 'formato de respuesta', claridad: 'claridad' },
+  fr: { objetivo: 'objectif', contexto: 'contexte', detalle: 'détail concret', aceptacion: "critères d'acceptation", restricciones: 'contraintes', formato: 'format de réponse', claridad: 'clarté' },
+  de: { objetivo: 'Ziel', contexto: 'Kontext', detalle: 'konkrete Details', aceptacion: 'Akzeptanzkriterien', restricciones: 'Einschränkungen', formato: 'Antwortformat', claridad: 'Klarheit' },
+  pt: { objetivo: 'objetivo', contexto: 'contexto', detalle: 'detalhe concreto', aceptacion: 'critério de aceitação', restricciones: 'restrições', formato: 'formato de resposta', claridad: 'clareza' },
+  it: { objetivo: 'obiettivo', contexto: 'contesto', detalle: 'dettaglio concreto', aceptacion: 'criterio di accettazione', restricciones: 'vincoli', formato: 'formato della risposta', claridad: 'chiarezza' },
 }
 
-const WHY: Record<Lang, Record<string, string>> = {
-  es: {
-    short: 'demasiado corto', brief: 'falta concretar qué conseguir',
-    noAnchor: 'sin ruta, archivo ni símbolo', unverified: 'ruta o símbolo que no aparece en el borrador ni en la conversación',
-    discovery: 'pide localizarlo, pero sin ruta concreta', vagueScope: 'zona del código sin ruta concreta',
-    oneDetail: 'un solo dato concreto', noDetail: 'sin comportamiento esperado, error, ejemplo ni cifra',
-    weakAccept: 'verificación sin criterio explícito de terminado', noAccept: 'sin criterio de terminado',
-    oneLimit: 'una sola restricción', noLimit: 'sin restricciones ni alcance',
-    noFormat: 'sin decir qué devolver', vague: 'referencias vagas', gaps: 'huecos sin rellenar', long: 'demasiado largo',
-  },
+const WHY: Record<Lang, Record<WhyKey, string>> = {
   en: {
     short: 'too short', brief: 'what to achieve is not concrete',
     noAnchor: 'no path, file or symbol', unverified: 'path or symbol not found in the draft or the conversation',
@@ -43,32 +46,90 @@ const WHY: Record<Lang, Record<string, string>> = {
     oneDetail: 'only one concrete fact', noDetail: 'no expected behaviour, error, example or figure',
     weakAccept: 'verification without an explicit done criterion', noAccept: 'no done criterion',
     oneLimit: 'only one constraint', noLimit: 'no constraints or scope',
-    noFormat: 'does not say what to return', vague: 'vague references', gaps: 'unfilled gaps', long: 'too long',
+    noFormat: 'does not say what to return', vague: 'vague references', gaps: 'unfilled gaps',
+  },
+  es: {
+    short: 'demasiado corto', brief: 'falta concretar qué conseguir',
+    noAnchor: 'sin ruta, archivo ni símbolo', unverified: 'ruta o símbolo que no aparece en el borrador ni en la conversación',
+    discovery: 'pide localizarlo, pero sin ruta concreta', vagueScope: 'zona del código sin ruta concreta',
+    oneDetail: 'un solo dato concreto', noDetail: 'sin comportamiento esperado, error, ejemplo ni cifra',
+    weakAccept: 'verificación sin criterio explícito de terminado', noAccept: 'sin criterio de terminado',
+    oneLimit: 'una sola restricción', noLimit: 'sin restricciones ni alcance',
+    noFormat: 'sin decir qué devolver', vague: 'referencias vagas', gaps: 'huecos sin rellenar',
+  },
+  fr: {
+    short: 'trop court', brief: "l'objectif n'est pas concret",
+    noAnchor: 'ni chemin, ni fichier, ni symbole', unverified: 'chemin ou symbole absent du brouillon et de la conversation',
+    discovery: 'demande de le localiser, sans chemin concret', vagueScope: 'zone du code sans chemin concret',
+    oneDetail: 'un seul fait concret', noDetail: 'ni comportement attendu, ni erreur, ni exemple, ni chiffre',
+    weakAccept: 'vérification sans critère de fin explicite', noAccept: 'aucun critère de fin',
+    oneLimit: 'une seule contrainte', noLimit: 'ni contraintes ni périmètre',
+    noFormat: 'ne dit pas quoi renvoyer', vague: 'références vagues', gaps: 'trous à remplir',
+  },
+  de: {
+    short: 'zu kurz', brief: 'das Ziel ist nicht konkret',
+    noAnchor: 'kein Pfad, keine Datei, kein Symbol', unverified: 'Pfad oder Symbol weder im Entwurf noch im Gespräch',
+    discovery: 'soll es finden, aber ohne konkreten Pfad', vagueScope: 'Codebereich ohne konkreten Pfad',
+    oneDetail: 'nur ein konkreter Fakt', noDetail: 'kein erwartetes Verhalten, kein Fehler, kein Beispiel, keine Zahl',
+    weakAccept: 'Prüfung ohne explizites Fertig-Kriterium', noAccept: 'kein Fertig-Kriterium',
+    oneLimit: 'nur eine Einschränkung', noLimit: 'keine Einschränkungen, kein Umfang',
+    noFormat: 'sagt nicht, was zurückkommen soll', vague: 'vage Verweise', gaps: 'offene Lücken',
+  },
+  pt: {
+    short: 'curto demais', brief: 'o objetivo não está concreto',
+    noAnchor: 'sem caminho, arquivo ou símbolo', unverified: 'caminho ou símbolo que não aparece no rascunho nem na conversa',
+    discovery: 'pede para localizar, mas sem caminho concreto', vagueScope: 'área do código sem caminho concreto',
+    oneDetail: 'um só dado concreto', noDetail: 'sem comportamento esperado, erro, exemplo ou número',
+    weakAccept: 'verificação sem critério explícito de pronto', noAccept: 'sem critério de pronto',
+    oneLimit: 'uma só restrição', noLimit: 'sem restrições nem escopo',
+    noFormat: 'não diz o que devolver', vague: 'referências vagas', gaps: 'lacunas por preencher',
+  },
+  it: {
+    short: 'troppo corto', brief: "l'obiettivo non è concreto",
+    noAnchor: 'nessun percorso, file o simbolo', unverified: 'percorso o simbolo assente dalla bozza e dalla conversazione',
+    discovery: 'chiede di individuarlo, ma senza percorso concreto', vagueScope: 'zona del codice senza percorso concreto',
+    oneDetail: 'un solo dato concreto', noDetail: 'nessun comportamento atteso, errore, esempio o cifra',
+    weakAccept: 'verifica senza un criterio esplicito di completamento', noAccept: 'nessun criterio di completamento',
+    oneLimit: 'un solo vincolo', noLimit: 'nessun vincolo né perimetro',
+    noFormat: 'non dice cosa restituire', vague: 'riferimenti vaghi', gaps: 'lacune da riempire',
   },
 }
 
 export function normalize(text: string): string {
-  return String(text || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  return String(text || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ß/g, 'ss')
 }
 
-export function isSpanish(text: string): boolean {
+// Palabras que delatan cada idioma; las compartidas (de, que, la) no cuentan para no confundir es, pt e it.
+const STOPWORDS: Record<Lang, RegExp> = {
+  es: /\b(el|los|las|esto|eso|pero|mas|sin|y|del|al|lo|por|para|con|una|cuando|tambien|hay)\b/g,
+  en: /\b(the|and|for|with|this|that|from|into|should|please|need|make|is|of|to|it|when|there)\b/g,
+  fr: /\b(le|les|des|du|pour|avec|est|ce|cette|mais|sans|et|dans|qui|pas|quand|il|je|vous)\b/g,
+  de: /\b(der|die|das|und|ist|nicht|mit|fur|ein|eine|den|dem|zu|auf|wenn|ich|es|im|bei)\b/g,
+  pt: /\b(os|isso|sem|do|da|nao|no|na|em|com|um|uma|voce|quando|tambem|ao)\b/g,
+  it: /\b(il|gli|di|che|per|questo|ma|senza|della|non|sono|quando|anche|nel|del)\b/g,
+}
+
+/** Idioma del texto por palabras frecuentes; con empate o sin pistas, español, como hasta ahora. */
+export function langOf(text: string): Lang {
   const value = ' ' + normalize(text) + ' '
-  const es = (value.match(/\b(el|la|los|las|de|que|para|con|una|un|esto|eso|pero|como|mas|sin|y|en|del|al|se|lo)\b/g) || []).length
-  const en = (value.match(/\b(the|and|for|with|this|that|from|into|should|please|need|make|is|of|to|it)\b/g) || []).length
-  return es >= en
+  let best: Lang = 'es'
+  let top = 0
+  for (const lang of ['es', 'en', 'pt', 'it', 'fr', 'de'] as const) {
+    const n = (value.match(STOPWORDS[lang]) || []).length
+    if (n > top) { best = lang; top = n }
+  }
+  return best
 }
-
-export const langOf = (text: string): Lang => (isSpanish(text) ? 'es' : 'en')
 
 const INTENTS: { id: Intent; match: RegExp }[] = [
-  { id: 'fix', match: /\b(arregla|arreglar|corrige|corregir|falla|fallo|error|bug|rompe|roto|crash|excepcion|exception|fix|broken|fails|failing)\b/ },
-  { id: 'change', match: /\b(que (siempre|se pueda|pueda|haya|aparezca|salga|funcione|se muestre|se vea)|haz que|quiero que|me gustaria|necesito que|deberia|podrias|seria bueno|cambia|modifica|ajusta|permite|siempre|make it|let|should|always|would like|need it to)\b/ },
-  { id: 'test', match: /\b(test|tests|prueba|pruebas|cobertura|coverage|unit|spec)\b/ },
-  { id: 'review', match: /\b(revisa|revisar|audita|auditar|review|audit|critica|code review)\b/ },
-  { id: 'refactor', match: /\b(refactor|refactoriza|refactorizar|limpia|limpiar|reorganiza|renombra|simplifica)\b/ },
-  { id: 'explain', match: /\b(explica|explicame|explicar|como funciona|que hace|entiende|explain|how does|how do)\b/ },
-  { id: 'design', match: /\b(disena|disenar|diseno|arquitectura|plan|propone|propuesta|design|architecture)\b/ },
-  { id: 'feature', match: /\b(anade|agrega|crea|crear|implementa|implementar|construye|add|create|implement|build)\b/ },
+  { id: 'fix', match: /\b(arregla|arreglar|corrige|corregir|falla|fallo|error|bug|rompe|roto|crash|excepcion|exception|fix|broken|fails|failing|repare|erreur|plantage|behebe|beheben|fehler|kaputt|absturz|conserta|consertar|corrija|corrigir|erro|falha|quebrado|correggi|correggere|errore|rotto|guasto)\b/ },
+  { id: 'change', match: /\b(que (siempre|se pueda|pueda|haya|aparezca|salga|funcione|se muestre|se vea)|haz que|quiero que|me gustaria|necesito que|deberia|podrias|seria bueno|cambia|modifica|ajusta|permite|siempre|make it|let|should|always|would like|need it to|modifie|fais que|je veux que|andere|aendere|mach dass|ich mochte|muda|mude|altere|quero que|faca que|voglio che|fai che)\b/ },
+  { id: 'test', match: /\b(test|tests|prueba|pruebas|cobertura|coverage|unit|spec|teste|testes)\b/ },
+  { id: 'review', match: /\b(revisa|revisar|audita|auditar|review|audit|critica|code review|revois|relis|audite|revue|prufe|pruefe|uberprufe|revise|rivedi|revisiona|controlla)\b/ },
+  { id: 'refactor', match: /\b(refactor|refactoriza|refactorizar|limpia|limpiar|reorganiza|renombra|simplifica|refactorise|nettoie|simplifie|refaktoriere|vereinfache|refatora|refatore|rifattorizza|pulisci|semplifica)\b/ },
+  { id: 'explain', match: /\b(explica|explicame|explicar|como funciona|que hace|entiende|explain|how does|how do|explique|comment fonctionne|erklare|erklaere|wie funktioniert|spiega|come funziona)\b/ },
+  { id: 'design', match: /\b(disena|disenar|diseno|arquitectura|plan|propone|propuesta|design|architecture|conception|entwirf|entwurf|architektur|projete|arquitetura|progetta|architettura)\b/ },
+  { id: 'feature', match: /\b(anade|agrega|crea|crear|implementa|implementar|construye|add|create|implement|build|ajoute|cree|implemente|erstelle|implementiere|baue|adiciona|adicione|crie|aggiungi)\b/ },
 ]
 
 export function detectIntent(text: string): Intent {
@@ -101,64 +162,77 @@ export function anchorsOf(text: string, cwd = ''): string[] {
 const has = (re: RegExp, text: string) => re.test(text)
 const count = (re: RegExp, text: string) => new Set((text.match(re) || []).map(s => s.trim())).size
 
+// Pistas de cada criterio en los seis idiomas, sobre el texto normalizado (minúsculas, sin tildes).
+const CUE = {
+  discovery: /\b(localiza|busca|encuentra|identifica|averigua|find|locate|search for|identify|trouve|localise|cherche|finde|suche|lokalisiere|encontra|encontre|procura|trova|individua|cerca)\b/,
+  scoped: /\b(pantalla|vista|modulo|componente|endpoint|servicio|funcion|clase|tabla|pagina|formulario|boton|hook|widget|app|script|screen|view|module|component|service|function|class|page|form|button|api|repo|proyecto|project|ecran|vue|composant|fonction|bouton|bildschirm|ansicht|komponente|funktion|seite|formular|knopf|klasse|dienst|tela|funcao|botao|servico|schermata|funzione|pulsante|servizio|classe)\b/,
+  quantity: /\b\d+(?:[.,]\d+)?\s?(?:px|ms|s|%|mb|kb|gb|segundos|minutos|lineas|filas|elementos|usuarios|items|lines|rows|users|seconds|minutes)?\b/,
+  errorWord: /\b(error|excepcion|exception|traceback|stack trace|mensaje|message|log|warning|aviso|erreur|fehler|meldung|fehlermeldung|erro|mensagem|errore|messaggio)\b/,
+  example: /\b(por ejemplo|ejemplo|p\. ?ej\.|e\.g\.|for example|example|caso|par exemple|exemple|zum beispiel|beispiel|z\. ?b\.|exemplo|ad esempio|esempio)\b/,
+  expected: /\b(esperado|espero|deberia|en vez de|en lugar de|actualmente|ahora mismo|ahora|antes|despues|expected|should|instead of|currently|right now|before|after|attendu|devrait|au lieu de|actuellement|erwartet|sollte|statt|stattdessen|aktuell|derzeit|deveria|em vez de|atualmente|atteso|dovrebbe|invece di|attualmente)\b/,
+  acceptStrong: /\b(criterio|criterios|aceptacion|hecho cuando|terminado cuando|esta listo cuando|definition of done|done when|acceptance|criteres|critere|acceptation|termine quand|fini quand|akzeptanzkriterien|abnahmekriterien|fertig wenn|aceitacao|pronto quando|criteri|accettazione|finito quando)\b/,
+  acceptWeak: /\b(verifica|comprueba|comprobar|test|tests|prueba|pruebas|debe pasar|tiene que pasar|sin errores|check|verify|should pass|must pass|passes|verifie|doit passer|prufe|pruefe|muss bestehen|verifique|teste|deve passar|controlla|deve passare)\b/,
+  limits: /\b(no toques|no cambies|no modifiques|no anadas|no uses|no rompas|no borres|no reescribas|no instales|sin anadir|sin cambiar|sin tocar|sin dependencias|sin romper|solo|unicamente|evita|manten|respeta|restricciones|alcance|nunca|don'?t|do not|only|without|avoid|keep|never|constraints|scope|ne touche pas|ne modifie pas|ne change pas|sans|seulement|uniquement|evite|garde|jamais|contraintes|perimetre|nicht anfassen|nicht andern|nicht aendern|andere nicht|aendere nicht|beruhre nicht|fass nicht|ohne|nur|vermeide|behalte|niemals|einschrankungen|umfang|nao toque|nao mude|nao altere|sem|somente|apenas|mantenha|restricoes|escopo|non toccare|non cambiare|non modificare|senza|soltanto|mantieni|mai|vincoli|perimetro)\b/g,
+  // «devuelve» o «returns» a secas no cuentan: suelen describir el fallo («devuelve 500»), no la respuesta.
+  format: /\b(formato|responde con|responde en|devuelveme|dame|entregame|resumen|resume|tabla|diff|en \d+ lineas|lista de cambios|output|respond with|reply with|give me|format|summary|table|bullet|list of changes|reponds avec|donne-moi|tableau|liste des changements|antwortformat|antworte mit|gib mir|zusammenfassung|tabelle|responda com|resumo|tabela|rispondi con|dammi|riepilogo|tabella)\b/,
+  vague: /\b(esto|eso|aquello|lo de|algo|hazlo|arreglalo|cosas|cosa|etc|stuff|thing|things|whatever|somehow|truc|machin|zeug|irgendwie|coisa|coisas|troco|roba|coso)\b/g,
+  gapWord: /\b(rellena|fill in|tbd|xxx|remplir|ausfullen|preencha|compila)\b/g,
+}
+
 /**
  * Puntúa un prompt contra la rúbrica. `known` es lo que el agente ya tiene a mano (borrador original y
  * conversación): una ruta o símbolo de la propuesta solo cuenta como contexto si aparece ahí, para que
  * inventarse una ruta no suba la nota.
  */
-export function assess(text: string, opts: { known?: string; cwd?: string; lang?: Lang } = {}): Assessment {
+export function assess(text: string, opts: { known?: string; cwd?: string } = {}): Assessment {
   const trimmed = String(text || '').trim()
-  const lang = opts.lang ?? langOf(trimmed)
-  const w = WHY[lang]
   const n = normalize(trimmed)
   const words = trimmed.split(/\s+/).filter(Boolean).length
   const intent = detectIntent(trimmed)
   const criteria: Criterion[] = []
-  const add = (id: CriterionId, points: number, why?: string) => criteria.push({ id, points, max: MAX[id], why: points < MAX[id] ? why : undefined })
+  const add = (id: CriterionId, points: number, why?: WhyKey) => criteria.push({ id, points, max: MAX[id], why: points < MAX[id] ? why : undefined })
 
   // Objetivo: qué conseguir, con verbo y objeto.
-  if (words < 4) add('objetivo', 0, w.short)
-  else if (words < 8 || (intent === 'ask' && words < 12)) add('objetivo', 10, w.brief)
+  if (words < 4) add('objetivo', 0, 'short')
+  else if (words < 8 || (intent === 'ask' && words < 12)) add('objetivo', 10, 'brief')
   else add('objetivo', 20)
 
   // Contexto: dónde actuar, verificado contra lo que el agente ya sabe.
   const anchors = anchorsOf(trimmed, opts.cwd)
   const known = opts.known ?? trimmed
   const verified = anchors.filter(a => known.includes(a))
-  const discovery = has(/\b(localiza|busca|encuentra|identifica|averigua|find|locate|search for|identify)\b/, n)
-  const scoped = has(/\b(pantalla|vista|modulo|componente|endpoint|servicio|funcion|clase|tabla|pagina|formulario|boton|hook|widget|app|script|hook|screen|view|module|component|service|function|class|page|form|button|api|repo|proyecto|project)\b/, n)
+  const discovery = has(CUE.discovery, n)
   if (verified.length) add('contexto', 15)
-  else if (discovery || scoped) add('contexto', 8, anchors.length ? w.unverified : discovery ? w.discovery : w.vagueScope)
-  else add('contexto', anchors.length ? 5 : 0, anchors.length ? w.unverified : w.noAnchor)
+  else if (discovery || has(CUE.scoped, n)) add('contexto', 8, anchors.length ? 'unverified' : discovery ? 'discovery' : 'vagueScope')
+  else add('contexto', anchors.length ? 5 : 0, anchors.length ? 'unverified' : 'noAnchor')
 
   // Detalle concreto: hechos que acotan la tarea.
   const detail = [
-    /"[^"\n]{3,}"|«[^»\n]{3,}»|“[^”\n]{3,}”/.test(trimmed),
-    has(/\b\d+(?:[.,]\d+)?\s?(?:px|ms|s|%|mb|kb|gb|segundos|minutos|lineas|filas|elementos|usuarios|items|lines|rows|users|seconds|minutes)?\b/, n.replace(PATH, ' ')),
-    has(/\b(error|excepcion|exception|traceback|stack trace|mensaje|message|log|warning|aviso)\b/, n),
-    has(/\b(por ejemplo|ejemplo|p\. ?ej\.|e\.g\.|for example|example|caso)\b/, n),
-    has(/\b(esperado|espero|deberia|en vez de|en lugar de|actualmente|ahora mismo|ahora|antes|despues|expected|should|instead of|currently|right now|before|after)\b/, n),
+    /"[^"\n]{3,}"|«[^»\n]{3,}»|“[^”\n]{3,}”|„[^“\n]{3,}“/.test(trimmed),
+    has(CUE.quantity, n.replace(PATH, ' ')),
+    has(CUE.errorWord, n),
+    has(CUE.example, n),
+    has(CUE.expected, n),
     new RegExp(ATTACHMENT.source).test(trimmed),
   ].filter(Boolean).length
-  add('detalle', detail >= 2 ? 15 : detail === 1 ? 8 : 0, detail === 1 ? w.oneDetail : w.noDetail)
+  add('detalle', detail >= 2 ? 15 : detail === 1 ? 8 : 0, detail === 1 ? 'oneDetail' : 'noDetail')
 
   // Criterio de aceptación: cómo se sabe que está hecho.
-  const acceptStrong = has(/\b(criterio|aceptacion|hecho cuando|terminado cuando|esta listo cuando|definition of done|done when|acceptance)\b/, n)
-  const acceptWeak = has(/\b(verifica|comprueba|comprobar|test|tests|prueba|pruebas|debe pasar|tiene que pasar|sin errores|check|verify|should pass|must pass|passes)\b/, n)
-  add('aceptacion', acceptStrong && words >= 15 ? 20 : acceptStrong || acceptWeak ? 12 : 0, acceptStrong || acceptWeak ? w.weakAccept : w.noAccept)
+  const acceptStrong = has(CUE.acceptStrong, n)
+  const acceptWeak = has(CUE.acceptWeak, n)
+  add('aceptacion', acceptStrong && words >= 15 ? 20 : acceptStrong || acceptWeak ? 12 : 0, acceptStrong || acceptWeak ? 'weakAccept' : 'noAccept')
 
   // Restricciones: qué no tocar y hasta dónde llegar.
-  const limits = count(/\b(no toques|no cambies|no modifiques|no anadas|no uses|no rompas|no borres|no reescribas|no instales|sin anadir|sin cambiar|sin tocar|sin dependencias|sin romper|solo|unicamente|evita|manten|respeta|restricciones|alcance|nunca|don'?t|do not|only|without|avoid|keep|never|constraints|scope)\b/g, n)
-  add('restricciones', limits >= 2 ? 15 : limits === 1 ? 8 : 0, limits === 1 ? w.oneLimit : w.noLimit)
+  const limits = count(CUE.limits, n)
+  add('restricciones', limits >= 2 ? 15 : limits === 1 ? 8 : 0, limits === 1 ? 'oneLimit' : 'noLimit')
 
-  // Formato de respuesta: qué devuelve el agente al terminar. «devuelve» o «returns» a secas no cuentan:
-  // suelen describir el fallo («devuelve 500»), no la respuesta que se pide.
-  add('formato', has(/\b(formato|responde con|responde en|devuelveme|dame|entregame|resumen|resume|tabla|diff|en \d+ lineas|lista de cambios|output|respond with|reply with|give me|format|summary|table|bullet|list of changes)\b/, n) ? 10 : 0, w.noFormat)
+  // Formato de respuesta: qué devuelve el agente al terminar.
+  add('formato', has(CUE.format, n) ? 10 : 0, 'noFormat')
 
   // Claridad: sin referencias vagas ni huecos por rellenar.
-  const vague = count(/\b(esto|eso|aquello|lo de|algo|hazlo|arreglalo|cosas|cosa|etc|stuff|thing|things|whatever|somehow)\b/g, n)
-  const gaps = (trimmed.replace(ATTACHMENT, '').match(/\[[^\]\n]{1,60}\](?!\()/g) || []).length + count(/\b(rellena|fill in|tbd|xxx)\b/g, n)
-  add('claridad', gaps ? 0 : vague === 0 ? 5 : vague === 1 ? 2 : 0, gaps ? w.gaps : w.vague)
+  const vague = count(CUE.vague, n)
+  const gaps = (trimmed.replace(ATTACHMENT, '').match(/\[[^\]\n]{1,60}\](?!\()/g) || []).length + count(CUE.gapWord, n)
+  add('claridad', gaps ? 0 : vague === 0 ? 5 : vague === 1 ? 2 : 0, gaps ? 'gaps' : 'vague')
 
   let score = criteria.reduce((sum, c) => sum + c.points, 0)
   if (gaps) score -= 10
@@ -175,44 +249,33 @@ export function assess(text: string, opts: { known?: string; cwd?: string; lang?
   }
 }
 
-/** "contexto 8/15 (sin ruta concreta)", una por criterio incompleto. */
-export function describeMissing(a: Assessment, lang: Lang): string[] {
-  return a.missing.map(c => `${LABEL[lang][c.id]} ${c.points}/${c.max}${c.why ? ` (${c.why})` : ''}`)
+/** "contexto 8/15 (sin ruta concreta)", una por criterio incompleto, en el idioma pedido. */
+export function describeMissing(a: Assessment, lang: Lang, withReasons = true): string[] {
+  return a.missing.map(c => `${LABEL[lang][c.id]} ${c.points}/${c.max}${withReasons && c.why ? ` (${WHY[lang][c.why]})` : ''}`)
 }
 
 // ---------- prompts del modelo ----------
 
-export const SYSTEMS: Record<Lang, string> = {
-  es: [
-    'Eres un ingeniero de prompts senior. Reescribes el borrador de una persona para que un agente de código',
-    'lo ejecute bien a la primera.',
-    '',
-    'El resultado se puntúa con esta rúbrica de 100 puntos. Cúbrela entera, con contenido real:',
-    '- Objetivo (20): qué hay que conseguir, con verbo de acción y objeto.',
-    '- Contexto (15): dónde actuar: ruta, archivo, `símbolo` o @mención. Solo cuenta si aparece en el borrador o',
-    '  en la conversación: NUNCA inventes rutas ni nombres. Si no consta, pide al agente que lo localice primero.',
-    '- Detalle (15): comportamiento actual y esperado, mensaje de error literal, ejemplo o cifra; al menos dos,',
-    '  deducidos del borrador o de la conversación.',
-    '- Criterio de aceptación (20): cómo se comprueba que está hecho: prueba, comando o caso concreto.',
-    '- Restricciones (15): al menos dos: qué no tocar, alcance, dependencias.',
-    '- Formato de respuesta (10): qué debe devolver el agente al terminar.',
-    '- Claridad (5): sin referencias vagas («esto», «eso», «lo de», «algo») ni huecos entre corchetes.',
-    '',
-    'Reglas:',
-    '- Conserva la intención; no añadas requisitos que no se deduzcan de ella.',
-    '- Si hay conversación reciente, úsala para concretar (qué archivo, qué cambio, qué comando) sin repetirla.',
-    '- Estructura fija, cada sección con su cabecera en su línea: Objetivo:, Contexto:, Detalle:,',
-    '  Criterio de aceptación:, Restricciones:, Formato de respuesta:. Viñetas cortas. Máximo 220 palabras.',
-    '- Si falta un dato, no lo inventes ni dejes corchetes: indica que el agente lo averigüe o lo pregunte.',
-    '- No afirmes hechos del proyecto que no consten (nombres de archivos o tests, puertos, servicios, variables',
-    '  de entorno, causas del fallo): pide al agente que los compruebe. Las restricciones prudentes sí valen.',
-    '- Conserva tal cual [Image #N], [Pasted text #N ...], menciones @ruta y rutas de archivo.',
-    '- Mismo idioma que el borrador. Nada de raya ni guion largo.',
-    '',
-    'Devuelve SOLO el prompt final, sin comentarios ni bloques de código.',
-  ].join('\n'),
-  en: [
-    'You are a senior prompt engineer. Rewrite a person\'s draft so a coding agent gets it right first time.',
+// Cabeceras de la propuesta en cada idioma; la rúbrica las reconoce (CUE) para que la estructura puntúe.
+const HEADERS: Record<Lang, string[]> = {
+  en: ['Goal', 'Context', 'Detail', 'Acceptance criteria', 'Constraints', 'Response format'],
+  es: ['Objetivo', 'Contexto', 'Detalle', 'Criterio de aceptación', 'Restricciones', 'Formato de respuesta'],
+  fr: ['Objectif', 'Contexte', 'Détail', "Critères d'acceptation", 'Contraintes', 'Format de réponse'],
+  de: ['Ziel', 'Kontext', 'Details', 'Akzeptanzkriterien', 'Einschränkungen', 'Antwortformat'],
+  pt: ['Objetivo', 'Contexto', 'Detalhe', 'Critério de aceitação', 'Restrições', 'Formato de resposta'],
+  it: ['Obiettivo', 'Contesto', 'Dettaglio', 'Criterio di accettazione', 'Vincoli', 'Formato della risposta'],
+}
+
+const LENGTH: Record<Verbosity, string> = {
+  concise: 'Exactly one line per section, at most 15 words per line, no extra bullets. At most 110 words in total.',
+  balanced: 'Short bullets. At most 220 words.',
+  detailed: 'Up to three bullets per section; under Goal you may add a short numbered plan. At most 340 words.',
+}
+
+/** Instrucciones del modelo: una plantilla para todos los idiomas, que fija idioma, cabeceras y longitud. */
+export function systemPrompt(lang: Lang, verbosity: Verbosity = 'balanced'): string {
+  return [
+    "You are a senior prompt engineer. Rewrite a person's draft so a coding agent gets it right first time.",
     '',
     'The result is scored with this 100-point rubric. Cover all of it, with real content:',
     '- Goal (20): what to achieve, with an action verb and an object.',
@@ -228,38 +291,36 @@ export const SYSTEMS: Record<Lang, string> = {
     'Rules:',
     '- Keep the intent; add no requirement that cannot be inferred from it.',
     '- With recent conversation, use it to make the request concrete (which file, change, command) without repeating it.',
-    '- Fixed structure, each section header on its own line: Goal:, Context:, Detail:, Acceptance criteria:,',
-    '  Constraints:, Response format:. Short bullets. At most 220 words.',
+    `- Write the whole prompt in the language of the draft. It looks like ${LANG_NAME[lang]}; if the draft is clearly`,
+    '  in another language, use that one and translate the section headers into it.',
+    `- Fixed structure, each section header on its own line: ${HEADERS[lang].map(h => h + ':').join(', ')}.`,
+    `- ${LENGTH[verbosity]}`,
     '- If a fact is missing, do not invent it or leave brackets: tell the agent to find it out or ask.',
     '- Do not state project facts that are not given (file or test names, ports, services, environment',
     '  variables, causes of the failure): tell the agent to check them. Prudent constraints are fine.',
     '- Keep [Image #N], [Pasted text #N ...], @path mentions and file paths verbatim.',
-    '- Same language as the draft. No em dashes.',
+    '- No em dashes.',
     '',
     'Return ONLY the final prompt, with no commentary and no code fences.',
-  ].join('\n'),
+  ].join('\n')
 }
 
 /** Mensaje de usuario de la primera reescritura. */
-export function rewritePrompt(draft: string, opts: { lang: Lang; cwd?: string; context?: string }): string {
-  const project = opts.cwd ? `${opts.lang === 'es' ? 'Proyecto' : 'Project'}: ${projectName(opts.cwd)} (${opts.cwd})` : ''
-  return [project, opts.context || '', `${opts.lang === 'es' ? 'Borrador a reescribir' : 'Draft to rewrite'}:\n${draft}`]
-    .filter(Boolean).join('\n\n')
+export function rewritePrompt(draft: string, opts: { cwd?: string; context?: string }): string {
+  const project = opts.cwd ? `Project: ${projectName(opts.cwd)} (${opts.cwd})` : ''
+  return [project, opts.context || '', `Draft to rewrite:\n${draft}`].filter(Boolean).join('\n\n')
 }
 
 /**
  * Segunda pasada: solo si la primera dejó criterios incompletos que el modelo puede cubrir sin inventar.
  * Contexto y detalle dependen de datos: se piden solo si están en el borrador o la conversación.
  */
-export function repairPrompt(draft: string, previous: string, a: Assessment, opts: { lang: Lang; cwd?: string; context?: string }): string {
-  const es = opts.lang === 'es'
-  const gaps = describeMissing(a, opts.lang).map(g => '- ' + g).join('\n')
+export function repairPrompt(draft: string, previous: string, a: Assessment, opts: { cwd?: string; context?: string }): string {
+  const gaps = describeMissing(a, 'en').map(g => '- ' + g).join('\n')
   return [
     rewritePrompt(draft, opts),
-    `${es ? 'Tu versión anterior' : 'Your previous version'} (${a.score}/100):\n${previous}`,
-    es
-      ? `Le falta:\n${gaps}\n\nDevuelve la versión corregida cubriendo esos puntos. Contexto y detalle solo con datos que estén en el borrador o en la conversación; si no están, no los inventes.`
-      : `It is missing:\n${gaps}\n\nReturn the corrected version covering those points. Context and detail only with facts present in the draft or the conversation; if they are not there, do not invent them.`,
+    `Your previous version (${a.score}/100):\n${previous}`,
+    `It is missing:\n${gaps}\n\nReturn the corrected version covering those points, in the same language. Context and detail only with facts present in the draft or the conversation; if they are not there, do not invent them.`,
   ].join('\n\n')
 }
 
@@ -268,11 +329,11 @@ export function isRepairable(a: Assessment): boolean {
   return a.missing.some(c => c.id !== 'contexto' && c.id !== 'detalle') || a.missing.some(c => c.points === 0)
 }
 
-export function recentContext(rows: readonly { role: string; text: string }[], lang: Lang): string {
+export function recentContext(rows: readonly { role: string; text: string }[]): string {
   const tail = rows.filter(r => r.text.trim()).slice(-8)
   if (tail.length === 0) return ''
   const lines = tail.map(r => `${r.role}: ${r.text.replace(/\s+/g, ' ').trim().slice(0, 700)}`)
-  return (lang === 'es' ? 'Conversación reciente (el agente ya la conoce):\n' : 'Recent conversation (the agent already knows it):\n') + lines.join('\n')
+  return 'Recent conversation (the agent already knows it):\n' + lines.join('\n')
 }
 
 export function keepAttachments(original: string, proposalText: string): string {
@@ -302,7 +363,9 @@ type Copy = {
   acceptance: Record<Intent, string[]>
 }
 
-const COPY: Record<Lang, Copy> = {
+// El motor local, que solo actúa si el modelo no responde, tiene textos en español e inglés;
+// para los demás idiomas usa el inglés.
+const COPY: Record<'es' | 'en', Copy> = {
   es: {
     contexto: 'Contexto', objetivo: 'Objetivo', necesito: 'Qué necesito', aceptacion: 'Criterio de aceptación',
     alcance: 'Restricciones', salida: 'Formato de respuesta', proyecto: 'Proyecto',
@@ -436,7 +499,7 @@ function cleanRequest(text: string): string {
 
 export function buildPrompt(text: string, cwd: string) {
   const lang: Lang = langOf(text)
-  const copy = COPY[lang]
+  const copy = COPY[lang === 'es' ? 'es' : 'en']
   const intent = detectIntent(text)
   const words = text.trim().split(/\s+/).filter(Boolean).length
   const anchored = anchorsOf(text, cwd).length > 0
