@@ -2,10 +2,14 @@
 
 All notable changes to Prompt Coach. Versions follow `.claude-plugin/plugin.json`.
 
-## Unreleased
+## 1.7.3 (2026-11-04)
+
+Tested inside Codex 0.166.0 with the hook trusted in `/hooks`: a weak prompt is blocked, `raw:` goes through, and `$coach` scores, rewrites (41 → 90) and shows the proposal.
 
 ### Fixed
 
+- **A response format written as an infinitive did not count** ("Responder con las secciones…", "Enumerar los archivos…"). The rubric now reads those forms; a bug description such as "devuelve 500" still does not count.
+- **Codex `$coach` skill: drafts passed as a shell argument lost their line breaks** (written as a literal `\n`), which glued section headers to the text before them, so "Formato" went unread. The skill now passes the draft on stdin.
 - **Codex adapter: the hook blocked its own `$coach` skill.** Invoking the skill with a weak draft (`$coach arregla el login`) is itself a weak prompt, so the `UserPromptSubmit` hook held it and the skill never ran. Skill mentions (`$name …`) now go through, like `/commands`. Found while testing the adapter; it does not change the Claude Code mod.
 
 ## 1.7.2 (2026-11-04)

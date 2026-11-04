@@ -746,3 +746,10 @@ test('a proposal from a held Enter in the terminal can be sent as it is, or the 
   expect(await ui.find({ type: 'Button', key: 'send-original' })).toBeUndefined()
   await ui.unmount()
 })
+
+test('a response format written as an infinitive counts, as Codex writes it ("Responder con…", "Enumerar…")', async () => {
+  const fmt = (t: string) => assess(t).criteria.find(c => c.id === 'formato')?.points
+  expect(fmt('Responder con las secciones Causa raíz, Cambios realizados y Verificación.')).toBe(10)
+  expect(fmt('Enumerar los archivos modificados y cada prueba ejecutada con su resultado.')).toBe(10)
+  expect(fmt('el endpoint devuelve 500 al guardar')).toBe(0)
+})

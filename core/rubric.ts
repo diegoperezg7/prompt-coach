@@ -213,7 +213,7 @@ const CUE = {
   // terminaciones dejan fuera las descripciones del fallo («no funciona», «não funciona», «non funziona»).
   negations: /\b(no [a-z]+(?:es|as|ar|er|ir)|ne pas [a-z]+|ne [a-z]+(?:e|er|ez) (?:pas|que|rien)|n'[a-z]+(?:e|er) (?:pas|que)|pas de nouve(?:au|aux|lle|lles)|keine? (?:neue[nr]?|weitere[nr]?|anderen?)|nicht [a-z]+en|nao [a-z]+(?:e|ar|er|ir)|non [a-z]+(?:are|ere|ire)|limita|limite|limit(?:e|ed)? (?:to|the|it)|no new)\b/g,
   // «devuelve» o «returns» a secas no cuentan: suelen describir el fallo («devuelve 500»), no la respuesta.
-  format: /\b(formato|responde con|responde en|devuelveme|dame|entregame|resumen|resume|tabla|diff|en \d+ lineas|lista de cambios|output|respond with|reply with|give me|format|summary|table|bullet|list of changes|reponds avec|donne-moi|tableau|liste des changements|antwortformat|antworte mit|gib mir|zusammenfassung|tabelle|responda com|resumo|tabela|rispondi con|dammi|riepilogo|tabella)\b/,
+  format: /\b(formato|responde con|responde en|responder con|responder en|responda con|enumera|enumerar|enumere|lista los|listar|indica los archivos|devuelveme|dame|entregame|resumen|resume|tabla|diff|en \d+ lineas|lista de cambios|output|respond with|reply with|give me|format|summary|table|bullet|list of changes|reponds avec|donne-moi|tableau|liste des changements|antwortformat|antworte mit|gib mir|zusammenfassung|tabelle|responda com|resumo|tabela|rispondi con|dammi|riepilogo|tabella)\b/,
   vague: /\b(esto|eso|aquello|lo de|algo|hazlo|arreglalo|cosas|cosa|etc|stuff|thing|things|whatever|somehow|truc|machin|zeug|irgendwie|coisa|coisas|troco|roba|coso)\b/g,
   gapWord: /\b(rellena|fill in|tbd|xxx|remplir|ausfullen|preencha|da completare)\b/g,
 }
