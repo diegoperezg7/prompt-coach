@@ -449,3 +449,20 @@ test('the acceptance header alone scores nothing; checkable content under it doe
   expect(acc('Explica el pooler de Supabase del proyecto.\nCriterio de aceptación:\n- La explicación cita el archivo y la línea de la configuración.')).toBe(20)
   expect(acc('Fix the login in src/auth/login.ts, it is done when the dashboard loads after signing in')).toBe(20)
 })
+
+test('from 60 columns the band names the criterion that costs the most; narrower, it stays out', async ($, on) => {
+  engine(on, { isAnswered: true, text: FULL, usage: USAGE })
+  const clock = mock.clock(on)
+  for (const surface of ['terminal', 'vscode'] as const) {
+    await $.session.start({ cwd: '/tmp/demo-app', surface, isInteractive: true })
+    box = 'arregla el login'
+    await $.prompt.edit({ origin: { kind: 'composer' }, text: 'arregla el logi', cursor: 15, start: 15, end: 15, inputText: 'n' })
+    await clock.advance(1000)
+    const wide = await $.ui.mount({ ...BAND, props: { ...BAND.props, bodyColumns: 80 }, surface })
+    expect((await wide.find({ type: 'Text', text: /^falta: / }))?.text).toBe('falta: objetivo')
+    await wide.unmount()
+    const narrow = await $.ui.mount({ ...BAND, props: { ...BAND.props, bodyColumns: 50 }, surface })
+    expect(await narrow.find({ type: 'Text', text: /^falta: / })).toBeUndefined()
+    await narrow.unmount()
+  }
+})

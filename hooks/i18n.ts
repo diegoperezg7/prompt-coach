@@ -17,6 +17,7 @@ const en = {
   timeout: 'The model took too long (30 s)',
   toFull: 'Missing for 100',
   command: 'Prompt Coach: improve the prompt draft with the model (or local rules)',
+  gap: 'missing',
 }
 
 export type UiText = { [K in keyof typeof en]: string }
@@ -39,6 +40,7 @@ export const UI: Record<Lang, UiText> = {
     timeout: 'El modelo tardó demasiado (30 s)',
     toFull: 'Falta para 100',
     command: 'Prompt Coach: mejora el borrador del prompt con el modelo (o con reglas locales)',
+    gap: 'falta',
   },
   fr: {
     weak: 'Prompt faible', solid: 'Prompt solide', improve: 'Améliorer le prompt', refine: 'Affiner',
@@ -56,6 +58,7 @@ export const UI: Record<Lang, UiText> = {
     timeout: 'Le modèle a mis trop de temps (30 s)',
     toFull: 'Il manque pour 100',
     command: 'Prompt Coach : améliore le brouillon du prompt avec le modèle (ou des règles locales)',
+    gap: 'il manque',
   },
   de: {
     weak: 'Schwacher Prompt', solid: 'Solider Prompt', improve: 'Prompt verbessern', refine: 'Feinschliff',
@@ -73,6 +76,7 @@ export const UI: Record<Lang, UiText> = {
     timeout: 'Das Modell hat zu lange gebraucht (30 s)',
     toFull: 'Fehlt für 100',
     command: 'Prompt Coach: verbessert den Prompt-Entwurf mit dem Modell (oder lokalen Regeln)',
+    gap: 'fehlt',
   },
   pt: {
     weak: 'Prompt fraco', solid: 'Prompt sólido', improve: 'Melhorar prompt', refine: 'Refinar',
@@ -90,6 +94,7 @@ export const UI: Record<Lang, UiText> = {
     timeout: 'O modelo demorou demais (30 s)',
     toFull: 'Falta para 100',
     command: 'Prompt Coach: melhora o rascunho do prompt com o modelo (ou regras locais)',
+    gap: 'falta',
   },
   it: {
     weak: 'Prompt debole', solid: 'Prompt solido', improve: 'Migliora prompt', refine: 'Rifinisci',
@@ -107,5 +112,6 @@ export const UI: Record<Lang, UiText> = {
     timeout: 'Il modello ci ha messo troppo (30 s)',
     toFull: 'Manca per 100',
     command: 'Prompt Coach: migliora la bozza del prompt con il modello (o regole locali)',
+    gap: 'manca',
   },
 }

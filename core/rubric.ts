@@ -286,6 +286,11 @@ export function isQuestion(text: string): boolean {
   return (intent === 'ask' || intent === 'explain') && t.split(/\s+/).length <= 40
 }
 
+/** El criterio que más puntos resta, el primero de la rúbrica si empatan; null con todo al máximo. */
+export function topGap(a: Assessment): Criterion | null {
+  return a.missing.reduce<Criterion | null>((best, c) => (!best || c.max - c.points > best.max - best.points ? c : best), null)
+}
+
 /** "contexto 8/15 (sin ruta concreta)", una por criterio incompleto, en el idioma pedido. */
 export function describeMissing(a: Assessment, lang: Lang, withReasons = true): string[] {
   return a.missing.map(c => `${LABEL[lang][c.id]} ${c.points}/${c.max}${withReasons && c.why ? ` (${WHY[lang][c.why]})` : ''}`)

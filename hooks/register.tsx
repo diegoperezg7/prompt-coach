@@ -3,7 +3,7 @@ import type { EngineInterface, ModelCompleteResult, Register } from 'claude-code
 
 import type { Proposal } from '../types'
 import {
-  assess, buildPrompt, describeMissing, isQuestion, isRepairable, keepAttachments, LANGS, langOf, recentContext, repairPrompt,
+  assess, buildPrompt, describeMissing, isQuestion, isRepairable, LABEL, topGap, keepAttachments, LANGS, langOf, recentContext, repairPrompt,
   rewritePrompt, systemPrompt, unfence, WEAK_BELOW,
 } from '../core/rubric.ts'
 import type { Lang, Verbosity } from '../core/rubric.ts'
@@ -158,6 +158,12 @@ const tone = (score: number) => (score < WEAK_BELOW ? 'warning' : 'success')
 
 // Por debajo de este ancho la banda deja solo la nota y el botón.
 const NARROW = 40
+// Desde este ancho la banda añade el criterio que más resta, para enseñar mientras se escribe.
+const HINT_COLS = 60
+const gapHint = (text: string, a: ReturnType<typeof assess>) => {
+  const gap = topGap(a)
+  return gap ? `${ui(text).gap}: ${LABEL[uiLang(text)][gap.id]}` : ''
+}
 
 // Alto del editor del panel en terminal: lo que deja libre el resto, entre 3 y 14 filas, para que los botones
 // no queden fuera de la vista en un terminal bajo o con el panel encima del prompt. En poco alto, sin huecos.
@@ -328,6 +334,7 @@ export const register: Register = (on, options) => {
             dimColor={!a.weak}
             onPress={() => improveFromBox($)}
           />
+          {cols >= HINT_COLS && gapHint(text, a) !== '' && <Text key="gap" dimColor>{gapHint(text, a)}</Text>}
         </Box>
       )
     }
@@ -348,6 +355,7 @@ export const register: Register = (on, options) => {
           variant={a.weak ? 'primary' : 'secondary'}
           onPress={() => improveFromBox($)}
         />
+        {e.props.bodyColumns >= HINT_COLS && gapHint(text, a) !== '' && <Text key="gap" dimColor>{gapHint(text, a)}</Text>}
       </Box>
     )
   })
