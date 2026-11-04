@@ -22,7 +22,8 @@ const proposal = atom({ plugin: 'prompt-coach', key: 'proposal' } as const, null
 // siempre en el idioma del borrador, que es en el que la persona trabaja.
 let uiSetting: 'auto' | Lang = 'auto'
 // Modelo de la reescritura y longitud de la propuesta: opciones `model` y `verbosity` del plugin.
-const MODELS = ['haiku', 'sonnet', 'opus'] as const
+// `session`: el modelo de la propia sesión, sea el que sea en ese momento.
+const MODELS = ['haiku', 'sonnet', 'opus', 'session'] as const
 let model: string = 'haiku'
 let verbosity: Verbosity = 'balanced'
 // En `auto`, el idioma del borrador solo cuando la detección es segura; si no, el último seguro. Así la interfaz
@@ -104,13 +105,14 @@ async function improve($: EngineInterface, text: string): Promise<Improved> {
 
 async function rewrite($: EngineInterface, text: string, lang: Lang, id: number, signal: AbortSignal): Promise<Improved> {
   const cwd = await $.session.cwd()
+  const used = model === 'session' ? await $.session.model() : model
 
   const context = recentContext(await $.session.messages())
   // Lo que el agente ya sabe: una ruta de la propuesta solo puntúa si sale de aquí.
   const known = [text, context].join('\n')
   const opts = { cwd, context }
   const ask = (prompt: string) => $.model.complete({
-    model, system: systemPrompt(lang, verbosity), prompt, maxTokens: 900, effort: 'low', timeoutMs: 30_000,
+    model: used, system: systemPrompt(lang, verbosity), prompt, maxTokens: 900, effort: 'low', timeoutMs: 30_000,
   }, { signal })
 
   const r = await ask(rewritePrompt(text, opts))
@@ -143,7 +145,7 @@ async function rewrite($: EngineInterface, text: string, lang: Lang, id: number,
           passes,
           tokens: passes ? tokens : undefined,
           origin: best ? ('model' as const) : ('local' as const),
-          model: best ? model : undefined,
+          model: best ? used : undefined,
           note: best ? undefined : failureNote(r, uiLang(text)),
           changes: local ? local.changes : [],
           isBusy: false,

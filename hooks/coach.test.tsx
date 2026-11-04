@@ -497,3 +497,13 @@ test('with nothing typed, the pane speaks the last language used, remembered acr
   expect((await ui.find({ type: 'Text', text: /Prompt Coach/ }))?.text).toMatch(/écrivez un brouillon/)
   await ui.unmount()
 })
+
+test('model: session rewrites with the session own model and the pane names it', { options: { model: 'session' } }, async ($, on) => {
+  engine(on, { isAnswered: true, text: FULL, usage: USAGE }, [], ROWS)
+  await $.session.start({ cwd: '/tmp/demo-app', surface: 'vscode', isInteractive: true })
+  await $.command.run({ command: 'coach', args: 'arregla el login', origin: ORIGIN, presentation: 'transcript' })
+  expect(models.at(-1)).toBe('opus')
+  const ui = await $.ui.mount({ ...PANE, surface: 'vscode' })
+  expect(await ui.find({ type: 'Text', text: /modelo: opus/ })).toBeDefined()
+  await ui.unmount()
+})

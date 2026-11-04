@@ -11,12 +11,13 @@
     "model": {
       "type": "string",
       "title": "Model",
-      "description": "Model that rewrites the draft. haiku is the cheapest and fast; sonnet and opus cost more per rewrite.",
+      "description": "Model that rewrites the draft. haiku is the cheapest and fast; sonnet and opus cost more per rewrite; session uses the session's own model, whatever it is.",
       "default": "haiku",
       "options": [
         "haiku",
         "sonnet",
-        "opus"
+        "opus",
+        "session"
       ]
     },
     "language": {
