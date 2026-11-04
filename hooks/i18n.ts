@@ -26,6 +26,7 @@ const en = {
   statsPrev: 'previous week',
   statsPrompts: 'prompts',
   statsTop: 'Most missed criterion',
+  heldCli: 'Held, not sent. Run $coach to improve it, or send it again starting with raw: to send it as it is.',
 }
 
 export type UiText = { [K in keyof typeof en]: string }
@@ -57,6 +58,7 @@ export const UI: Record<Lang, UiText> = {
     statsPrev: 'semana anterior',
     statsPrompts: 'prompts',
     statsTop: 'Criterio que más falla',
+    heldCli: 'Retenido, no se ha enviado. Usa $coach para mejorarlo, o vuelve a enviarlo empezando por raw: para mandarlo tal cual.',
   },
   fr: {
     weak: 'Prompt faible', solid: 'Prompt solide', improve: 'Améliorer le prompt', refine: 'Affiner',
@@ -83,6 +85,7 @@ export const UI: Record<Lang, UiText> = {
     statsPrev: 'semaine précédente',
     statsPrompts: 'prompts',
     statsTop: 'Critère le plus manqué',
+    heldCli: 'Retenu, rien n’a été envoyé. Lance $coach pour l’améliorer, ou renvoie-le en commençant par raw: pour l’envoyer tel quel.',
   },
   de: {
     weak: 'Schwacher Prompt', solid: 'Solider Prompt', improve: 'Prompt verbessern', refine: 'Feinschliff',
@@ -109,6 +112,7 @@ export const UI: Record<Lang, UiText> = {
     statsPrev: 'Vorwoche',
     statsPrompts: 'Prompts',
     statsTop: 'Am häufigsten fehlendes Kriterium',
+    heldCli: 'Zurückgehalten, nichts gesendet. Mit $coach verbessern oder erneut mit raw: am Anfang senden, um ihn unverändert zu schicken.',
   },
   pt: {
     weak: 'Prompt fraco', solid: 'Prompt sólido', improve: 'Melhorar prompt', refine: 'Refinar',
@@ -135,6 +139,7 @@ export const UI: Record<Lang, UiText> = {
     statsPrev: 'semana anterior',
     statsPrompts: 'prompts',
     statsTop: 'Critério que mais falta',
+    heldCli: 'Retido, nada foi enviado. Use $coach para melhorar, ou envie de novo começando com raw: para mandar como está.',
   },
   it: {
     weak: 'Prompt debole', solid: 'Prompt solido', improve: 'Migliora prompt', refine: 'Rifinisci',
@@ -161,5 +166,6 @@ export const UI: Record<Lang, UiText> = {
     statsPrev: 'settimana precedente',
     statsPrompts: 'prompt',
     statsTop: 'Criterio che manca più spesso',
+    heldCli: 'Trattenuto, non è stato inviato nulla. Usa $coach per migliorarlo, o rimandalo iniziando con raw: per inviarlo così com’è.',
   },
 }

@@ -115,6 +115,18 @@ La rúbrica entiende borradores en los seis idiomas, y la propuesta se escribe s
 
 Con menos texto caben menos restricciones y detalles, así que la nota baja un poco; el juez las ve igual de útiles.
 
+## Codex
+
+Prompt Coach también funciona en Codex, con la misma rúbrica (`core/`), a través de una CLI pequeña (`cli/prompt-coach.mts`, Node 22.6 o posterior):
+
+```
+git clone https://github.com/diegoperezg7/prompt-coach && sh prompt-coach/adapters/codex/install.sh
+```
+
+- **Hook**: un encargo flojo se retiene con su nota y lo que falta para 100. Empieza el prompt con `raw:` para enviarlo tal cual. Codex no ejecuta un hook nuevo hasta que lo apruebas en `/hooks`.
+- **Skill `$coach`**: reescribe el borrador con el modelo de la sesión y comprueba la nota con la CLI.
+- Sin banda en vivo ni panel: Codex no deja a una extensión dibujar en el compositor.
+
 ## Por superficie
 
 | Superficie | Puntuación en vivo | Botón | Retención en Enter |

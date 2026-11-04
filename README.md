@@ -115,6 +115,18 @@ The rubric reads drafts in all six languages, and the proposal is always written
 
 Shorter proposals leave less room for constraints and detail, so they score a little lower; the judge finds them just as useful.
 
+## Codex
+
+Prompt Coach also runs in Codex, on the same rubric (`core/`), through a small CLI (`cli/prompt-coach.mts`, Node 22.6 or later):
+
+```
+git clone https://github.com/diegoperezg7/prompt-coach && sh prompt-coach/adapters/codex/install.sh
+```
+
+- **Hook**: a weak work prompt is held with its score and what is missing for 100. Start a prompt with `raw:` to send it as it is. Codex skips new hooks until you trust them in `/hooks`.
+- **`$coach` skill**: rewrites the draft with the session's model and checks the score with the CLI.
+- No live score band or proposal pane: Codex does not let an extension draw in the composer.
+
 ## Surfaces
 
 | Surface | Live score | Button | Hold on Enter |
