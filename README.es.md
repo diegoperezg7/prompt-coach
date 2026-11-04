@@ -91,6 +91,10 @@ Desde 60 columnas la banda nombra además el criterio que más resta. `/coach` (
 
 Opus escribe propuestas algo más útiles a 43 veces el coste de Haiku; lo eliges tú con la opción `model`. Se repite con `node --experimental-strip-types bench/run.mts haiku,sonnet,opus opus balanced`; las notas que respaldan estas tablas están en [`bench/summary.json`](bench/summary.json).
 
+## Lo que cuesta cada mejora
+
+El panel enseña los tokens y el coste de cada mejora, por ejemplo `haiku · 2 llamadas · 3100 in · 1200 out · 0,0006 $ · 6,1 s`, y `/coach usage` lista los totales de hoy y de los últimos 7 días, por modelo, y las últimas llamadas una a una (se guardan 90 días). Los tokens salen tal cual de cada llamada; el coste se calcula a precio de lista de la API (`core/pricing.ts`), y la fórmula coincide hasta el último decimal con la cifra de Claude Code para Haiku 5.5 y Sonnet 5.5. `/cost` no incluye las llamadas del mod, así que este es el sitio para comprobarlas.
+
 ## Instalar
 
 Desde el prompt de Claude Code:
@@ -155,6 +159,7 @@ claude plugin validate .
 | `hooks/register.tsx` | conecta los eventos del motor |
 | `hooks/state.ts`, `hooks/actions.ts`, `hooks/views.tsx` | estado y ajustes, acciones (mejorar, aplicar, cancelar, historial), banda y panel |
 | `hooks/i18n.ts` | textos de la interfaz en seis idiomas |
+| `hooks/usage.ts`, `core/pricing.ts` | tokens y coste de cada llamada al modelo, `/coach usage` |
 | `core/rubric.fixtures.ts` | casos de regresión de la rúbrica en seis idiomas |
 | `cli/`, `adapters/codex/` | la CLI y el hook y la skill de Codex |
 | `hooks/coach.test.tsx` | tests con el kit `claude-code/testing` |

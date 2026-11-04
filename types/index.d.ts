@@ -1,12 +1,12 @@
 export type Lang = 'en' | 'es' | 'fr' | 'de' | 'pt' | 'it'
 
-/** Uso de una mejora, sumando sus llamadas al modelo: tokens exactos y coste medido por Claude Code. */
+/** Uso de una mejora, sumando sus llamadas al modelo: tokens exactos y coste a precio de lista. */
 export type Usage = {
   calls: number
   input: number
   cached: number
   output: number
-  /** Dólares; null si la sesión no lleva cuenta de coste. */
+  /** Dólares a precio de lista; null si el modelo no está en la tabla de precios. */
   usd: number | null
   ms: number
 }

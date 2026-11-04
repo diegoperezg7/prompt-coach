@@ -2,6 +2,19 @@
 
 All notable changes to Prompt Coach. Versions follow `.claude-plugin/plugin.json`.
 
+## 1.5.1 (2026-11-04)
+
+### Fixed
+
+- **The cost of each rewrite showed $0.0000.** 1.5.0 measured it as the change in the session's total, but Claude Code's ledger (the one behind `/cost`) does not count a mod's model calls, so the difference was always zero. The cost is now computed from each call's exact tokens at API list price (`core/pricing.ts`: Haiku 5.5, Sonnet 5.5, Opus 5.5 and Fable 5.1, cache reads, 1-hour cache writes at 2x, Haiku's long-prompt rate). The formula matches Claude Code's own `total_cost_usd` for a Haiku 5.5 and a Sonnet 5.5 call to the last digit, and that check is a test. A model outside the table shows "no price for this model" instead of an invented figure.
+- "1 calls" now reads "1 call" in all six languages.
+
+## 1.5.0 (2026-11-04)
+
+### Added
+
+- **Usage per model call.** Each call records its model, pass, exact input, cached and output tokens, cost and time. The pane shows the rewrite's total (`haiku · 2 calls · 3100 in · 1200 out · $0.0006 · 6.1 s`), and `/coach usage` lists today's and the last 7 days' totals, per model, and the last ten calls. Kept for 90 days in the plugin's store.
+
 ## 1.4.0 (2026-11-04)
 
 Applies the prioritised list from the second review round, one commit per item. 37/37 tests pass, the type-check is clean and CI runs validate, tests and the CLI on every push. Opus's benchmark average stays at **94.8**: re-scoring the 80 stored proposals with the new rubric changes no average (`bench/summary.json`).

@@ -91,6 +91,10 @@ From 60 columns the band also names the criterion that costs the most. `/coach` 
 
 Opus writes slightly more useful proposals at 43x the cost of Haiku; the choice is yours with the `model` setting. Rerun it with `node --experimental-strip-types bench/run.mts haiku,sonnet,opus opus balanced`; the scores behind these tables are in [`bench/summary.json`](bench/summary.json).
 
+## What each rewrite costs
+
+The pane shows the tokens and cost of every rewrite, for example `haiku · 2 calls · 3100 in · 1200 out · $0.0006 · 6.1 s`, and `/coach usage` lists today's and the last 7 days' totals, per model, and the last calls one by one (kept for 90 days). Tokens come straight from each call; cost is computed at API list price (`core/pricing.ts`), and the formula matches Claude Code's own figure for Haiku 5.5 and Sonnet 5.5 to the last digit. `/cost` does not include the mod's calls, so this is the place to check them.
+
 ## Install
 
 From the Claude Code prompt:
@@ -155,6 +159,7 @@ claude plugin validate .
 | `hooks/register.tsx` | wires the engine's events |
 | `hooks/state.ts`, `hooks/actions.ts`, `hooks/views.tsx` | state and settings, actions (rewrite, apply, cancel, history), band and pane |
 | `hooks/i18n.ts` | interface texts in six languages |
+| `hooks/usage.ts`, `core/pricing.ts` | tokens and cost of every model call, `/coach usage` |
 | `core/rubric.fixtures.ts` | regression cases for the rubric in six languages |
 | `cli/`, `adapters/codex/` | the CLI and the Codex hook and skill |
 | `hooks/coach.test.tsx` | tests with the `claude-code/testing` kit |

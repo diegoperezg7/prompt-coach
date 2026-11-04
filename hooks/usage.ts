@@ -1,6 +1,6 @@
-// Uso de cada llamada al modelo: tokens exactos (los que devuelve la llamada) y coste medido por Claude Code
-// como la diferencia del total de la sesión antes y después, el mismo registro que /cost. Se guarda 90 días
-// en el almacén del plugin y /coach usage lo enseña para poder comprobarlo.
+// Uso de cada llamada al modelo: tokens exactos (los que devuelve la llamada) y su coste a precio de lista
+// (core/pricing.ts). Las llamadas del mod no entran en /cost, así que este registro es la forma de verlas.
+// Se guarda 90 días en el almacén del plugin y /coach usage lo enseña para poder comprobarlo.
 import type { EngineInterface } from 'claude-code'
 
 import type { Lang } from '../core/rubric.ts'
@@ -15,8 +15,10 @@ export type Call = {
   input: number
   /** De esos, los que sirvió la caché. */
   cached: number
+  /** De esos, los que se escribieron en la caché. */
+  written: number
   output: number
-  /** Dólares; null si la sesión no lleva cuenta de coste. */
+  /** Dólares a precio de lista; null si el modelo no está en la tabla de precios. */
   usd: number | null
   ms: number
   ok: boolean
@@ -24,12 +26,6 @@ export type Call = {
 
 const KEY = 'usage'
 const DAY = 24 * 60 * 60 * 1000
-
-/** Lo que la sesión lleva gastado según Claude Code, o null si no lleva cuenta. */
-export async function sessionUsd($: EngineInterface): Promise<number | null> {
-  const u = await $.session.usage().catch(() => null)
-  return typeof u?.cost?.usd === 'number' ? u.cost.usd : null
-}
 
 export async function nowMs($: EngineInterface): Promise<number> {
   return $.clock.now().catch(() => Date.now())
@@ -63,7 +59,7 @@ const fmtSec = (ms: number, lang: Lang) => `${dec(ms / 1000, 1, lang)} s`
 export function usageLine(u: Usage, model: string, lang: Lang): string {
   const t = UI[lang]
   const cached = u.cached ? ` (${u.cached} ${t.cached})` : ''
-  return [model, `${u.calls} ${t.calls}`, `${u.input} in${cached}`, `${u.output} out`, fmtUsd(u.usd, lang), fmtSec(u.ms, lang)]
+  return [model, `${u.calls} ${u.calls === 1 ? t.call : t.calls}`, `${u.input} in${cached}`, `${u.output} out`, fmtUsd(u.usd, lang), fmtSec(u.ms, lang)]
     .filter(Boolean).join(' · ')
 }
 
@@ -99,7 +95,7 @@ export async function usageText($: EngineInterface, lang: Lang): Promise<string>
   start.setHours(0, 0, 0, 0)
   const total = (cs: Call[]) => {
     const u = summarize(cs)
-    return `${u.calls} ${t.calls} · ${u.input} in · ${u.output} out · ${fmtUsd(u.usd, lang)}`
+    return `${u.calls} ${u.calls === 1 ? t.call : t.calls} · ${u.input} in · ${u.output} out · ${fmtUsd(u.usd, lang)}`
   }
   const week = all.filter(c => now - c.t < 7 * DAY)
   const models = [...new Set(week.map(c => c.model))]

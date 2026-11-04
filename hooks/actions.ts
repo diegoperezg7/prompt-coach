@@ -8,7 +8,8 @@ import {
 } from '../core/rubric.ts'
 import type { CriterionId, Lang } from '../core/rubric.ts'
 import { UI } from './i18n.ts'
-import { nowMs, recordCalls, sessionUsd, summarize } from './usage.ts'
+import { callCost } from '../core/pricing.ts'
+import { nowMs, recordCalls, summarize } from './usage.ts'
 import type { Call } from './usage.ts'
 import { cfg, isCoachable, MAX_DRAFT, noteLang, PANE, RULE_FILES, ses, ui, uiLang } from './state.ts'
 
@@ -77,23 +78,22 @@ async function rewrite($: EngineInterface, text: string, lang: Lang, id: number,
   // Lo que el agente ya sabe: una ruta de la propuesta solo puntúa si sale de aquí.
   const known = [text, context, rules].join('\n')
   const opts = { cwd, context, rules }
-  // Cada llamada se mide: tokens de su respuesta y coste como diferencia del total de la sesión (lo que cuenta /cost).
+  // Cada llamada se mide: tokens de su respuesta y su coste a precio de lista (las del mod no entran en /cost).
   const calls: Call[] = []
   async function ask(prompt: string, pass: 1 | 2) {
-    const usd0 = await sessionUsd($)
     const t0 = await nowMs($)
     const res = await $.model.complete({
       model: used, system: systemPrompt(lang, cfg.verbosity), prompt, maxTokens: 900, effort: 'low', timeoutMs: 30_000,
     }, { signal })
     const t1 = await nowMs($)
-    const usd1 = await sessionUsd($)
     const u = res.usage
     calls.push({
       t: t0, model: used, pass,
       input: u.input_tokens + u.cache_read_input_tokens + u.cache_creation_input_tokens,
       cached: u.cache_read_input_tokens,
+      written: u.cache_creation_input_tokens,
       output: u.output_tokens,
-      usd: usd0 !== null && usd1 !== null ? Math.max(0, usd1 - usd0) : null,
+      usd: callCost(used, { uncached: u.input_tokens, cacheRead: u.cache_read_input_tokens, cacheWrite: u.cache_creation_input_tokens, output: u.output_tokens }),
       ms: t1 - t0,
       ok: res.isAnswered,
     })
