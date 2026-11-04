@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="330" viewBox="0 0 880 330" role="img" aria-labelledby="t d">
+  <title id="t">Haiku frente a Sonnet</title>
+  <desc id="d">12 borradores reales. Coste por mejora: Haiku 0,0007 dólares, Sonnet 0,0114. Nota media: 93,5 y 95,3. Utilidad según el juez: 7,8 y 8,0. Datos inventados: 3 y 1.</desc>
+  <style>
+    :root { --bg:#ffffff; --fg:#0b0b0f; --muted:#5b5b6b; --line:#e4e2ee; --track:#f1eff6; --accent:#7c3aed; --other:#9a98a8; }
+    @media (prefers-color-scheme: dark) { :root { --bg:#000000; --fg:#f4f3f8; --muted:#a3a1b3; --line:#2a2833; --track:#16141d; --accent:#a78bfa; --other:#6d6b7b; } }
+    text { font-family: Inter, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+  </style>
+  <rect x="0.5" y="0.5" width="879" height="329" rx="16" fill="var(--bg)" stroke="var(--line)"/>
+  <text x="32" y="46" font-size="21" font-weight="700" fill="var(--fg)">Haiku frente a Sonnet · 12 borradores reales</text>
+  <g font-size="13" fill="var(--muted)">
+    <rect x="32" y="62" width="12" height="12" rx="3" fill="var(--accent)"/><text x="50" y="73">Haiku (por defecto)</text>
+    <rect x="186" y="62" width="12" height="12" rx="3" fill="var(--other)"/><text x="204" y="73">Sonnet</text>
+    <text x="300" y="73">Juez ciego: Opus. Mismo flujo que el mod: pasada y reparación.</text>
+  </g>
+
+  <!-- cuatro columnas de 200 px -->
+  <g font-size="14">
+    <g transform="translate(32 100)">
+      <text x="0" y="0" font-weight="700" fill="var(--fg)">Coste por mejora</text>
+      <text x="0" y="20" fill="var(--muted)" font-size="12">16 veces menos</text>
+      <rect x="20" y="190" width="56" height="12" rx="4" fill="var(--accent)"/>
+      <rect x="96" y="35" width="56" height="167" rx="4" fill="var(--other)"/>
+      <text x="48" y="182" text-anchor="middle" fill="var(--fg)" font-weight="700">0,0007 $</text>
+      <text x="124" y="27" text-anchor="middle" fill="var(--fg)" font-weight="700">0,0114 $</text>
+    </g>
+    <g transform="translate(240 100)">
+      <text x="0" y="0" font-weight="700" fill="var(--fg)">Nota media</text>
+      <text x="0" y="20" fill="var(--muted)" font-size="12">5/12 a 100 los dos</text>
+      <rect x="20" y="48" width="56" height="154" rx="4" fill="var(--accent)"/>
+      <rect x="96" y="45" width="56" height="157" rx="4" fill="var(--other)"/>
+      <text x="48" y="40" text-anchor="middle" fill="var(--fg)" font-weight="700">93,5</text>
+      <text x="124" y="37" text-anchor="middle" fill="var(--fg)" font-weight="700">95,3</text>
+    </g>
+    <g transform="translate(448 100)">
+      <text x="0" y="0" font-weight="700" fill="var(--fg)">Utilidad (juez)</text>
+      <text x="0" y="20" fill="var(--muted)" font-size="12">sobre 10</text>
+      <rect x="20" y="73" width="56" height="129" rx="4" fill="var(--accent)"/>
+      <rect x="96" y="70" width="56" height="132" rx="4" fill="var(--other)"/>
+      <text x="48" y="65" text-anchor="middle" fill="var(--fg)" font-weight="700">7,8</text>
+      <text x="124" y="62" text-anchor="middle" fill="var(--fg)" font-weight="700">8,0</text>
+    </g>
+    <g transform="translate(656 100)">
+      <text x="0" y="0" font-weight="700" fill="var(--fg)">Latencia</text>
+      <text x="0" y="20" fill="var(--muted)" font-size="12">segundos por mejora</text>
+      <rect x="20" y="91" width="56" height="111" rx="4" fill="var(--accent)"/>
+      <rect x="96" y="74" width="56" height="128" rx="4" fill="var(--other)"/>
+      <text x="48" y="83" text-anchor="middle" fill="var(--fg)" font-weight="700">5,2 s</text>
+      <text x="124" y="66" text-anchor="middle" fill="var(--fg)" font-weight="700">6,0 s</text>
+    </g>
+  </g>
+  <path d="M32 302.5 H848" stroke="var(--line)"/>
+</svg>
