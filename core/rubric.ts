@@ -205,6 +205,8 @@ const CUE = {
   // Solo límites con contenido: el nombre de la sección («Restricciones:») no cuenta, ni una palabra suelta
   // («solo, nunca»): tiene que ir seguida de aquello a lo que limita («solo cambia X», «nunca toques Y»).
   limits: /\b(no toques|no cambies|no modifiques|no anadas|no uses|no rompas|no borres|no reescribas|no instales|sin anadir|sin cambiar|sin tocar|sin dependencias|sin romper|solo|unicamente|evita|manten|respeta|nunca|don'?t|do not|only|without|avoid|keep|never|ne touche pas|ne modifie pas|ne change pas|sans|seulement|uniquement|evite|garde|jamais|nicht anfassen|nicht andern|nicht aendern|andere nicht|aendere nicht|beruhre nicht|fass nicht|ohne|nur|vermeide|behalte|niemals|nao toque|nao mude|nao altere|sem|somente|apenas|mantenha|non toccare|non cambiare|non modificare|senza|soltanto|mantieni|mai)\b(?=\s+[\w@/`'"«.-])/g,
+  // Verbos de encargo, para saber si el borrador pide algo concreto (objetivo).
+  goalVerb: /\b(arregla|corrige|anade|agrega|crea|implementa|haz|cambia|modifica|mejora|optimiza|acelera|migra|actualiza|elimina|borra|quita|mueve|renombra|configura|instala|documenta|traduce|escribe|genera|revisa|explica|explicame|disena|prueba|testea|refactoriza|limpia|simplifica|integra|conecta|sube|despliega|automatiza|analiza|investiga|compara|calcula|muestra|oculta|valida|fix|add|create|implement|make|change|update|improve|optimize|optimise|speed up|migrate|remove|delete|move|rename|configure|install|document|translate|write|generate|review|explain|design|test|refactor|clean up|simplify|integrate|connect|deploy|automate|analyze|analyse|investigate|compare|calculate|show|hide|validate|build|set up|ajoute|cree|implemente|fais|modifie|ameliore|optimise|accelere|migre|supprime|deplace|renomme|installe|documente|traduis|ecris|genere|revois|explique|concois|teste|refactorise|nettoie|simplifie|integre|connecte|deploie|automatise|analyse|calcule|affiche|valide|behebe|korrigiere|fuge|erstelle|implementiere|mach|andere|verbessere|optimiere|beschleunige|migriere|aktualisiere|entferne|losche|verschiebe|benenne|konfiguriere|installiere|dokumentiere|ubersetze|schreibe|generiere|prufe|erklare|entwirf|refaktoriere|vereinfache|integriere|verbinde|automatisiere|analysiere|vergleiche|berechne|zeige|verstecke|validiere|baue|conserta|corrija|adiciona|adicione|crie|faz|faca|muda|mude|altera|altere|melhora|melhore|otimiza|otimize|atualiza|atualize|remove|remova|apaga|renomeia|traduz|escreve|gera|revise|explique|projeta|testa|refatora|limpa|implanta|analisa|mostra|esconde|correggi|aggiungi|fai|migliora|ottimizza|accelera|aggiorna|rimuovi|sposta|rinomina|installa|traduci|scrivi|rivedi|spiega|progetta|rifattorizza|pulisci|semplifica|collega|distribuisci|automatizza|analizza|confronta|calcola|nascondi|retry|ensure|handle|support|prevent|reduce|increase|split|merge|replace|convert|parse|fetch|run|check|stop|start|reintenta|asegura|gestiona|maneja|soporta|evita|reduce|aumenta|divide|separa|fusiona|sustituye|reemplaza|convierte|ejecuta|lanza|comprueba|deten|arranca|inicia|reessaie|assure|gere|remplace|convertis|lance|verifie|wiederhole|stelle sicher|ersetze|teile|fuhre aus|tente novamente|garanta|substitua|converta|execute|verifique|riprova|assicurati|gestisci|sostituisci|converti|esegui|verifica)\b/,
   // Imperativo negativo por idioma: «no modifiques», «no añadir», «ne pas changer», «non toccare»... Las
   // terminaciones dejan fuera las descripciones del fallo («no funciona», «não funciona», «non funziona»).
   negations: /\b(no [a-z]+(?:es|as|ar|er|ir)|ne pas [a-z]+|ne [a-z]+(?:e|er|ez) (?:pas|que|rien)|n'[a-z]+(?:e|er) (?:pas|que)|pas de nouve(?:au|aux|lle|lles)|keine? (?:neue[nr]?|weitere[nr]?|anderen?)|nicht [a-z]+en|nao [a-z]+(?:e|ar|er|ir)|non [a-z]+(?:are|ere|ire)|limita|limite|limit(?:e|ed)? (?:to|the|it)|no new)\b/g,
@@ -227,13 +229,16 @@ export function assess(text: string, opts: { known?: string; cwd?: string } = {}
   const criteria: Criterion[] = []
   const add = (id: CriterionId, points: number, why?: WhyKey) => criteria.push({ id, points, max: MAX[id], why: points < MAX[id] ? why : undefined })
 
-  // Objetivo: qué conseguir, con verbo y objeto.
+  // Objetivo: qué conseguir, con verbo y objeto (o una pregunta concreta). La longitud sola no basta.
+  const anchors = anchorsOf(trimmed, opts.cwd)
+  const hasVerb = intent !== 'ask' || has(CUE.goalVerb, n)
+  const question = /\?\s*$/.test(trimmed) || trimmed.startsWith('¿')
   if (words < 4) add('objetivo', 0, 'short')
-  else if (words < 8 || (intent === 'ask' && words < 12)) add('objetivo', 10, 'brief')
-  else add('objetivo', 20)
+  else if ((hasVerb && (words >= 6 || anchors.length > 0)) || (question && words >= 6)) add('objetivo', 20)
+  else if (hasVerb || question || words >= 8) add('objetivo', 10, 'brief')
+  else add('objetivo', 0, 'brief')
 
   // Contexto: dónde actuar, verificado contra lo que el agente ya sabe.
-  const anchors = anchorsOf(trimmed, opts.cwd)
   const known = opts.known ?? trimmed
   const verified = anchors.filter(a => known.includes(a))
   const discovery = has(CUE.discovery, n)
