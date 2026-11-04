@@ -2,6 +2,28 @@
 
 All notable changes to Prompt Coach. Versions follow `.claude-plugin/plugin.json`.
 
+## 1.7.2 (2026-11-04)
+
+### Fixed
+
+- A proposal from a held Enter in the terminal can now be sent as it is or the original sent untouched (*Send proposal*, *Send original*). Before, cancelling and pressing Enter held the same prompt again, with no way to send it as typed.
+
+## 1.7.1 (2026-11-04)
+
+### Fixed
+
+- **Holding an Enter closed its own proposal.** After the hold, Claude Code puts the draft back in the composer, and the mod took that change for the person editing and dismissed the proposal, so the pane never showed. Only the person's own changes (typing, history, undo) dismiss it now. This most likely also affected the VS Code hold.
+- The held-prompt notice is one line: that notice does not take line breaks (they showed as "�"), and the proposal is in the pane.
+
+## 1.7.0 (2026-11-04)
+
+### Added
+
+- **Pasted text and dictation.** A long paste (also dictation from tools such as Wispr Flow, which types by pasting) is only a `[Pasted text #1 +12 lines]` marker in the composer, and Claude Code gives a mod its content only on Enter, inside `<pasted_content>` tags. Checked in a real session with a probe mod: no `prompt.edit` carries the paste.
+  - The band, the VS Code status line and `/coach` no longer score or rewrite the bare marker: they say the paste is read on Enter, or that pasting again expands it.
+  - `holdPasted` (on by default): on Enter, a weak prompt with pasted text is held in any surface, and the proposal is made from the full content. With nothing typed around it, the paste is the request and is rewritten; with your own words, it is support material that the model reads (up to 6000 characters) and the proposal carries whole.
+- Images are kept in the proposal but not read: `$.model.complete` takes text only.
+
 ## 1.6.0 (2026-11-04)
 
 ### Added

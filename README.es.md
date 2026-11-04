@@ -91,6 +91,14 @@ Desde 60 columnas la banda nombra además el criterio que más resta. `/coach` (
 
 Opus escribe propuestas algo más útiles a 43 veces el coste de Haiku; lo eliges tú con la opción `model`. Se repite con `node --experimental-strip-types bench/run.mts haiku,sonnet,opus opus balanced`; las notas que respaldan estas tablas están en [`bench/summary.json`](bench/summary.json).
 
+## Texto pegado y dictado
+
+Un pegado largo sale en el compositor como `[Pasted text #1 +12 lines]`, y lo mismo el dictado de herramientas como Wispr Flow, que escribe pegando. Claude Code solo le da ese texto a un mod al pulsar Enter, así que:
+
+- **Mientras escribes**, la banda no puntúa el marcador: avisa de que lo pegado se lee al pulsar Enter, o de que pegarlo otra vez lo expande para puntuarlo ya.
+- **Al pulsar Enter**, un prompt flojo con texto pegado se retiene y el panel enseña una propuesta hecha con el contenido completo (con `holdPasted`, activada por defecto). Si no escribiste nada más, lo pegado es el encargo (un dictado) y se reescribe como tal. Si escribiste algo alrededor, lo pegado es material de apoyo (un log, un trozo de código): el modelo lo lee para concretar el encargo y la propuesta lo lleva entero. *Enviar original* manda tu texto sin tocar.
+- **Las imágenes** se conservan en la propuesta y cuentan como dato concreto, pero el mod no puede verlas: llama al modelo solo con texto.
+
 ## Lo que cuesta cada mejora
 
 El panel enseña lo que gastó cada mejora, por ejemplo `haiku · 2 llamadas · 3100 in · 1200 out · plan <0,1 % · 0,0006 $ API · 6,1 s`, y `/coach usage` enseña tu plan en este momento (`5 h 24,0 % (se reinicia 4/11 18:50) · 7 días 70,0 %`), los totales de hoy y de los últimos 7 días, por modelo, y las últimas llamadas una a una (se guardan 90 días).
@@ -111,7 +119,7 @@ Responde `y` para añadir el marketplace y elige el ámbito de usuario: así fun
 
 ## Ajustes
 
-Cuatro opciones en `/plugin`, Prompt Coach, configurar:
+Cinco opciones en `/plugin`, Prompt Coach, configurar:
 
 | Opción | Valores | Por defecto |
 |---|---|---|
@@ -119,6 +127,7 @@ Cuatro opciones en `/plugin`, Prompt Coach, configurar:
 | `language` | `auto`, `en`, `es`, `fr`, `de`, `pt`, `it`: idioma de la interfaz; `auto` sigue al borrador | `auto` |
 | `verbosity` | `concise`, `balanced`, `detailed`: longitud de la propuesta | `balanced` |
 | `projectRules` | leer `CLAUDE.md` y `AGENTS.md` del proyecto (hasta 4000 caracteres) para que las restricciones salgan de las reglas del repo | activada |
+| `holdPasted` | retener al pulsar Enter un prompt flojo con texto pegado, en cualquier superficie, y proponer una reescritura hecha con su contenido completo (ver abajo) | activada |
 
 La rúbrica entiende borradores en los seis idiomas, y la propuesta se escribe siempre en el idioma del borrador. La verbosidad, medida con Haiku sobre los 16 borradores:
 
@@ -146,7 +155,7 @@ git clone https://github.com/diegoperezg7/prompt-coach && sh prompt-coach/adapte
 
 | Superficie | Puntuación en vivo | Botón | Retención en Enter |
 |---|---|---|---|
-| Terminal y app de escritorio | a cada tecla | banda (`m`) y `/coach` | no |
+| Terminal y app de escritorio | a cada tecla | banda (`m`) y `/coach` | solo prompts con texto pegado (`holdPasted`) |
 | Extensión de VS Code | sondeo del compositor cada segundo (la extensión no envía las teclas) | banda y `/coach` | sí: un prompt flojo de trabajo se retiene y abre el panel; los sólidos, las preguntas, los comandos y los mensajes con adjuntos pasan |
 
 ## Desarrollo

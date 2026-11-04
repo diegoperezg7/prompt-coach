@@ -32,6 +32,8 @@ export type Proposal = {
   usage?: Usage
   isBusy: boolean
   isApplied: boolean
+  /** La propuesta viene de un Enter retenido: el panel ofrece enviar la propuesta o el original tal cual. */
+  held?: boolean
 }
 
 declare module 'claude-code' {

@@ -91,6 +91,14 @@ From 60 columns the band also names the criterion that costs the most. `/coach` 
 
 Opus writes slightly more useful proposals at 43x the cost of Haiku; the choice is yours with the `model` setting. Rerun it with `node --experimental-strip-types bench/run.mts haiku,sonnet,opus opus balanced`; the scores behind these tables are in [`bench/summary.json`](bench/summary.json).
 
+## Pasted text and dictation
+
+A long paste shows in the composer as `[Pasted text #1 +12 lines]`, and so does dictation from tools such as Wispr Flow, which types by pasting. Claude Code gives a mod that text only when you press Enter, so:
+
+- **While you type**, the band does not score the marker; it says the paste is read on Enter, or that pasting again expands it so it can be scored right away.
+- **On Enter**, a weak prompt with pasted text is held and the pane shows a proposal made from the full content (with `holdPasted`, on by default). If you typed nothing else, the paste is the request (a dictation) and is rewritten as such. If you wrote something around it, the paste is support material (a log, some code): the model reads it to make the request concrete, and the proposal carries it whole. *Send original* sends your text untouched.
+- **Images** stay in the proposal and count as a concrete detail, but the mod cannot look at them: it calls the model with text only.
+
 ## What each rewrite costs
 
 The pane shows what every rewrite used, for example `haiku · 2 calls · 3100 in · 1200 out · plan <0.1 % · $0.0006 API · 6.1 s`, and `/coach usage` shows your plan right now (`5 h 24.0 % (resets 4/11 18:50) · 7 days 70.0 %`), today's and the last 7 days' totals, per model, and the last calls one by one (kept for 90 days).
@@ -111,7 +119,7 @@ Answer `y` to add the marketplace and pick the user scope: it then works in the 
 
 ## Settings
 
-Four options in `/plugin`, Prompt Coach, configure:
+Five options in `/plugin`, Prompt Coach, configure:
 
 | Option | Values | Default |
 |---|---|---|
@@ -119,6 +127,7 @@ Four options in `/plugin`, Prompt Coach, configure:
 | `language` | `auto`, `en`, `es`, `fr`, `de`, `pt`, `it`: interface language; `auto` follows the draft | `auto` |
 | `verbosity` | `concise`, `balanced`, `detailed`: length of the proposal | `balanced` |
 | `projectRules` | read the project's `CLAUDE.md` and `AGENTS.md` (up to 4000 characters) so constraints come from the repo's own rules | on |
+| `holdPasted` | hold a weak prompt with pasted text on Enter, in any surface, and propose a rewrite from its full content (see below) | on |
 
 The rubric reads drafts in all six languages, and the proposal is always written in the draft's language. Verbosity, measured with Haiku over the 16 drafts:
 
@@ -146,7 +155,7 @@ git clone https://github.com/diegoperezg7/prompt-coach && sh prompt-coach/adapte
 
 | Surface | Live score | Button | Hold on Enter |
 |---|---|---|---|
-| Terminal and desktop app | every keystroke | band (`m`) and `/coach` | no |
+| Terminal and desktop app | every keystroke | band (`m`) and `/coach` | only prompts with pasted text (`holdPasted`) |
 | VS Code extension | polls the composer every second (the extension does not send keystrokes) | band and `/coach` | yes: a weak work prompt is held and opens the pane; solid prompts, questions, commands and messages with attachments go through |
 
 ## Development

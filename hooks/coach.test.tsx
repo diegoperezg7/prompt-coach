@@ -723,3 +723,26 @@ test('after a held Enter the engine puts the draft back: the proposal stays; the
   expect(await ui.find({ type: 'Input', key: 'proposal' })).toBeUndefined()
   await ui.unmount()
 })
+
+test('a proposal from a held Enter in the terminal can be sent as it is, or the original sent untouched', async ($, on) => {
+  submitted.length = 0
+  engine(on, { isAnswered: true, text: FULL, usage: USAGE })
+  await $.session.start({ cwd: '/tmp/demo-app', surface: 'terminal', isInteractive: true })
+  const dictation = pastedBlock('7b0c', 'arregla el login que devuelve error').trim()
+  await $.prompt.submit({ text: dictation, origin: { kind: 'composer' }, wait: false })
+  let ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  await ui.press({ plugin: 'prompt-coach', key: 'send-original' })
+  expect(submitted.at(-1)).toBe('arregla el login que devuelve error')
+  await ui.unmount()
+
+  await $.prompt.submit({ text: dictation, origin: { kind: 'composer' }, wait: false })
+  ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  await ui.press({ plugin: 'prompt-coach', key: 'send' })
+  expect(submitted.at(-1)).toBe(FULL)
+  await ui.unmount()
+
+  await $.command.run({ command: 'coach', args: 'arregla el login', origin: ORIGIN, presentation: 'transcript' })
+  ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  expect(await ui.find({ type: 'Button', key: 'send-original' })).toBeUndefined()
+  await ui.unmount()
+})

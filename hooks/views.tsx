@@ -163,7 +163,7 @@ export async function paneTerminal($: EngineInterface, e: PaneEvent) {
   const missing = p.missing.length > 0 ? `${t.toFull}: ${p.missing.map(m => (reasons ? m : m.replace(/ \(.*\)$/, ''))).join('; ')}` : ''
   const changes = p.changes.length > 0 ? `${t.added}: ${p.changes.join(', ')}` : ''
   const usage = p.usage !== undefined ? usageLine(p.usage, p.model ?? '', p.lang) : ''
-  const labels = p.isApplied ? [t.applied, t.undo, t.again, t.copy, t.cancel] : [t.apply, t.copy, t.cancel]
+  const labels = [...(p.held ? [t.send, t.sendOriginal] : []), ...(p.isApplied ? [t.applied, t.undo, t.again, t.copy, t.cancel] : [t.apply, t.copy, t.cancel])]
   const { gap, rows } = paneLayout(e.props.scroll.bodyRows, cols, [
     `${t.proposal} ${p.before}/100 → ${p.after}/100 ${t.fromModel}: ${p.model ?? ''}`, usage, p.note ?? '', changes, missing,
     labels.map(l => `[ ${l} (x) ]`).join(' '),
@@ -171,6 +171,8 @@ export async function paneTerminal($: EngineInterface, e: PaneEvent) {
   ])
   const actions = (
     <Box flexWrap="wrap" gap={1}>
+      {p.held && <Button key="send" label={t.send} hotkey="e" variant="primary" onPress={() => sendAs($, ses.edited ?? p.text)} />}
+      {p.held && <Button key="send-original" label={t.sendOriginal} hotkey="o" onPress={() => sendAs($, p.original)} />}
       {p.isApplied ? (
         <Text color="success">{t.applied}</Text>
       ) : (

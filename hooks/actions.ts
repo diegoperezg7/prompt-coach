@@ -40,7 +40,7 @@ export async function clearStaleBusy($: EngineInterface) {
   await update($, proposal, p => (p && p.isBusy ? null : p))
 }
 
-export async function improve($: EngineInterface, sent: string): Promise<Improved> {
+export async function improve($: EngineInterface, sent: string, opts: { held?: boolean } = {}): Promise<Improved> {
   // Un prompt enviado con texto pegado llega con el contenido entre etiquetas: se puntúa y se guarda expandido,
   // y el modelo lee un dictado entero o, si es material de apoyo, las palabras de la persona con el pegado aparte.
   const pasted = hasPastedBlock(sent) ? splitPastes(sent) : null
@@ -56,7 +56,7 @@ export async function improve($: EngineInterface, sent: string): Promise<Improve
   // Estado y panel se piden antes del primer await, mientras sigue en curso la pulsación o el comando de la
   // persona: un panel abierto después cuenta como no pedido y en un terminal estrecho no se coloca.
   const busy = update($, proposal, () => ({
-    original: text, text: '', lang: uiLang(text), before, after: before, origin: 'local' as const, changes: [], missing: [], passes: 0, isBusy: true, isApplied: false,
+    original: text, text: '', lang: uiLang(text), before, after: before, origin: 'local' as const, changes: [], missing: [], passes: 0, isBusy: true, isApplied: false, held: opts.held,
   }))
   const opening = openPane($)
   await busy

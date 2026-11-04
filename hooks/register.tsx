@@ -72,7 +72,7 @@ export const register: Register = (on, options) => {
       $.ui.status(`${a.weak ? t.weak : t.solid} ${a.score}/100`)
       return pass()
     }
-    const done = await improve($, e.text.trim())
+    const done = await improve($, e.text.trim(), { held: true })
     // Una sola línea: el aviso de un Enter retenido no admite saltos de línea, y la propuesta ya está en el panel.
     return { drop: `Prompt Coach: ${t.weak} ${a.score}/100 → ${done.score}/100. ${t.held}` }
   })
