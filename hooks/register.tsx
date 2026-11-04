@@ -3,7 +3,7 @@ import type { EngineInterface, ModelCompleteResult, Register } from 'claude-code
 
 import type { Proposal } from '../types'
 import {
-  assess, buildPrompt, describeMissing, isRepairable, keepAttachments, LANGS, langOf, recentContext, repairPrompt,
+  assess, buildPrompt, describeMissing, isQuestion, isRepairable, keepAttachments, LANGS, langOf, recentContext, repairPrompt,
   rewritePrompt, systemPrompt, unfence, WEAK_BELOW,
 } from '../core/rubric.ts'
 import type { Lang, Verbosity } from '../core/rubric.ts'
@@ -42,22 +42,29 @@ function failureNote(r: ModelCompleteResult, lang: Lang): string {
 
 // Lo que la persona teclea en el editor del panel; no es estado para no redibujar a cada tecla.
 let edited: string | null = null
-// Última propuesta calculada, para devolverla como salida del comando donde no hay banda.
-let improved = ''
-let improvedScore = 0
-
 // True en terminal y escritorio, donde la banda sobre el prompt dibuja la puntuación y el botón.
 // Sin banda (VS Code, móvil) el panel se abre al arrancar y hace de banda.
 let hasBand = false
+// Superficie de la sesión; null en `claude -p` y el SDK, donde nadie elige y no se retiene nada.
+let surface: string | null = null
+// Una mejora a la vez: la nueva o Cancelar cortan la anterior, que deja de escribir en el panel.
+let run = 0
+let stop: AbortController | null = null
 
 
 const openPane = ($: EngineInterface) =>
   $.ui.open({ id: PANE, title: 'Prompt Coach', focus: true, closeOnEscape: true, rows: 24 }).catch(() => ({ isPlaced: false as const }))
 
-async function improve($: EngineInterface, text: string) {
+type Improved = { text: string; score: number }
+
+async function improve($: EngineInterface, text: string): Promise<Improved> {
   const lang = langOf(text)
   const before = assess(text).score
   edited = null
+  stop?.abort()
+  const controller = new AbortController()
+  stop = controller
+  const id = ++run
   // Estado y panel se piden antes del primer await, mientras sigue en curso la pulsación o el comando de la
   // persona: un panel abierto después cuenta como no pedido y en un terminal estrecho no se coloca.
   const busy = update($, proposal, () => ({
@@ -66,6 +73,19 @@ async function improve($: EngineInterface, text: string) {
   const opening = openPane($)
   await busy
   await opening
+  try {
+    return await rewrite($, text, lang, id, controller.signal)
+  } catch {
+    return { text, score: before }
+  } finally {
+    // Pase lo que pase (un fallo del motor, un modelo bloqueado), el panel no se queda ocupado.
+    if (id === run) {
+      await update($, proposal, p => (p && p.isBusy ? { ...p, text: p.original, isBusy: false, note: UI[p.lang].noModel } : p))
+    }
+  }
+}
+
+async function rewrite($: EngineInterface, text: string, lang: Lang, id: number, signal: AbortSignal): Promise<Improved> {
   const cwd = await $.session.cwd()
 
   const context = recentContext(await $.session.messages())
@@ -74,7 +94,7 @@ async function improve($: EngineInterface, text: string) {
   const opts = { cwd, context }
   const ask = (prompt: string) => $.model.complete({
     model, system: systemPrompt(lang, verbosity), prompt, maxTokens: 900, effort: 'low', timeoutMs: 30_000,
-  })
+  }, { signal })
 
   const r = await ask(rewritePrompt(text, opts))
   let best = r.isAnswered ? keepAttachments(text, unfence(r.text)) : ''
@@ -83,7 +103,7 @@ async function improve($: EngineInterface, text: string) {
   // Segunda pasada dirigida: solo si quedan criterios que el modelo puede cubrir sin inventar datos.
   if (best) {
     const a = assess(best, { known, cwd })
-    if (a.score < 100 && isRepairable(a)) {
+    if (a.score < 100 && isRepairable(a) && !signal.aborted) {
       const r2 = await ask(repairPrompt(text, best, a, opts))
       tokens += r2.usage.input_tokens + r2.usage.cache_read_input_tokens + r2.usage.cache_creation_input_tokens + r2.usage.output_tokens
       if (r2.isAnswered) {
@@ -96,10 +116,8 @@ async function improve($: EngineInterface, text: string) {
   const local = best ? null : buildPrompt(text, cwd)
   const out = best || keepAttachments(text, local!.prompt)
   const after = assess(out, { known, cwd })
-  improved = out
-  improvedScore = after.score
   await update($, proposal, p =>
-    p && p.original === text
+    p && id === run
       ? {
           ...p,
           text: out,
@@ -115,6 +133,7 @@ async function improve($: EngineInterface, text: string) {
         }
       : p,
   )
+  return { text: out, score: after.score }
 }
 
 async function apply($: EngineInterface, text?: string) {
@@ -167,13 +186,18 @@ function startPoll($: EngineInterface) {
 
 // $.prompt.submit no pasa por el compositor: se vacía antes para que no quede el borrador viejo.
 async function sendAs($: EngineInterface, text: string) {
+  const p = await read($, proposal)
   await $.prompt.fill({ text: '' }).catch(() => undefined)
   await dismiss($)
-  await $.prompt.submit({ text })
+  const sent = await $.prompt.submit({ text })
+  // Otro hook puede rechazar el envío: entonces el borrador de la persona vuelve al compositor.
+  if (sent.drop !== undefined) await $.prompt.fill({ text: p?.original ?? text }).catch(() => undefined)
 }
 
 // VS Code: el compositor de la extensión no manda teclas, así que el botón lee el borrador al pulsarlo.
+// También la banda y el panel vacío del terminal: misma validación y nunca dos mejoras a la vez.
 async function improveFromBox($: EngineInterface) {
+  if ((await read($, proposal))?.isBusy) return
   const text = (await $.prompt.read()).text.trim()
   const t = ui(text)
   if (!isCoachable(text)) return $.ui.toast(t.empty)
@@ -181,8 +205,15 @@ async function improveFromBox($: EngineInterface) {
   await improve($, text)
 }
 
-async function dismiss($: EngineInterface) {
+async function dismiss($: EngineInterface, restore = false) {
   edited = null
+  stop?.abort()
+  run++
+  const p = await read($, proposal)
+  // Tras retener un Enter en VS Code el compositor puede quedar vacío: Cancelar no debe perder el borrador.
+  if (restore && p && !hasBand && !(await $.prompt.read().catch(() => ({ text: '' }))).text.trim()) {
+    await $.prompt.fill({ text: p.original }).catch(() => undefined)
+  }
   await update($, proposal, () => null)
   await $.ui.close({ id: PANE }).catch(() => undefined)
 }
@@ -192,12 +223,23 @@ async function onDraft($: EngineInterface, text: string, isOwnFill: boolean) {
   await update($, draft, () => text)
   if (!isOwnFill && (await read($, proposal))) void dismiss($)
   if (hasBand) return
-  if (!isCoachable(text)) return $.ui.status(undefined)
+  if (!isCoachable(text) || isQuestion(text)) return $.ui.status(undefined)
   const a = assess(text)
   const t = ui(text)
   $.ui.status(`${a.weak ? t.weak : t.solid} ${a.score}/100 · ${t.hint}`)
 }
 
+
+// Mientras el modelo trabaja: el aviso y Cancelar, que corta la llamada.
+function busyView($: EngineInterface, e: Parameters<EngineInterface['ui']['resolve']>[0], t: { busy: string; cancel: string }) {
+  const { Box, Button, Text } = $.ui.resolve(e)
+  return (
+    <Box flexWrap="wrap" gap={1}>
+      <Text dimColor>{t.busy}</Text>
+      <Button key="cancel" label={t.cancel} onPress={() => dismiss($, true)} />
+    </Box>
+  )
+}
 
 export const register: Register = (on, options) => {
   const pick = <T extends string>(value: unknown, allowed: readonly T[], fallback: T): T =>
@@ -208,6 +250,8 @@ export const register: Register = (on, options) => {
 
   on('session.start', async ($, e, next) => {
     hasBand = e.surface === 'terminal' || e.surface === 'desktop'
+    surface = e.surface
+    await update($, proposal, p => (p && p.isBusy ? null : p))
     await $.command.register({
       name: 'coach',
       description: UI[uiSetting === 'auto' ? 'en' : uiSetting].command,
@@ -229,18 +273,18 @@ export const register: Register = (on, options) => {
   // Sin banda (VS Code) el motor no ve las teclas: el único momento de ofrecer la mejora es el Enter.
   // Se retiene solo un prompt flojo con intención de trabajo (no preguntas ni respuestas cortas), sin adjuntos.
   on('prompt.submit', async ($, e, next) => {
-    if (hasBand || e.command || e.isMeta || e.attachments?.length) return next(e)
-    if (e.origin.kind !== 'composer' && e.origin.kind !== 'sdk') return next(e)
+    if ((surface !== 'vscode' && surface !== 'mobile') || e.command || e.isMeta || e.attachments?.length) return next(e)
+    if (e.origin.kind !== 'composer') return next(e)
     const text = e.text.trim()
-    if (!isCoachable(text)) return next(e)
+    if (!isCoachable(text) || isQuestion(text)) return next(e)
     const a = assess(text)
     const t = ui(text)
     if (!a.weak || a.intent === 'ask' || a.words < 3) {
       $.ui.status(`${a.weak ? t.weak : t.solid} ${a.score}/100`)
       return next(e)
     }
-    await improve($, text)
-    return { drop: `Prompt Coach: ${t.weak} ${a.score}/100 → ${improvedScore}/100. ${t.held}\n\n${improved}` }
+    const done = await improve($, text)
+    return { drop: `Prompt Coach: ${t.weak} ${a.score}/100 → ${done.score}/100. ${t.held}\n\n${done.text}` }
   })
 
   on('command.run', { command: 'coach' }, async ($, e) => {
@@ -255,8 +299,8 @@ export const register: Register = (on, options) => {
       void improve($, text)
       return { text: t.ready }
     }
-    await improve($, text)
-    return { text: `${hasBand ? t.narrow : t.ready}\n\n${improved}` }
+    const done = await improve($, text)
+    return { text: `${hasBand ? t.narrow : t.ready}\n\n${done.text}` }
   })
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
@@ -266,7 +310,7 @@ export const register: Register = (on, options) => {
       if (e.props.hasSurvey) return next(e)
       if (await read($, proposal)) return next(e)
       const text = await read($, draft)
-      if (!isCoachable(text)) return next(e)
+      if (!isCoachable(text) || isQuestion(text)) return next(e)
       const a = assess(text)
       const t = ui(text)
       const { Box, Button, Text } = $.ui.resolve(e)
@@ -288,7 +332,7 @@ export const register: Register = (on, options) => {
       )
     }
     const text = await read($, draft)
-    const why = e.props.hasSurvey ? 'pass:survey' : !isCoachable(text) ? 'pass:empty' : 'draw'
+    const why = e.props.hasSurvey ? 'pass:survey' : !isCoachable(text) || isQuestion(text) ? 'pass:empty' : 'draw'
     if (why !== 'draw') return next(e)
     const a = assess(text)
     const t = ui(text)
@@ -302,7 +346,7 @@ export const register: Register = (on, options) => {
           label={a.weak ? t.improve : t.refine}
           hotkey="m"
           variant={a.weak ? 'primary' : 'secondary'}
-          onPress={async () => improve($, (await $.prompt.read()).text.trim())}
+          onPress={() => improveFromBox($)}
         />
       </Box>
     )
@@ -314,7 +358,7 @@ export const register: Register = (on, options) => {
       const { Box, Button, Text } = $.ui.resolve(e)
       if (!p) return <Text dimColor>{ui('').idle}</Text>
       const t = UI[p.lang]
-      if (p.isBusy) return <Text dimColor>{t.busy}</Text>
+      if (p.isBusy) return busyView($, e, t)
       return (
         <Box flexDirection="column" gap={1}>
           <Box flexWrap="wrap" gap={1}>
@@ -338,7 +382,7 @@ export const register: Register = (on, options) => {
             )}
             <Button key="again" label={t.again} onPress={() => improve($, p.original)} />
             <Button key="send-original" label={t.sendOriginal} onPress={() => sendAs($, p.original)} />
-            <Button key="cancel" label={t.cancel} onPress={() => dismiss($)} />
+            <Button key="cancel" label={t.cancel} onPress={() => dismiss($, true)} />
           </Box>
           {p.isApplied && <Text color="success" size="caption">{t.applied}</Text>}
           <Box flexDirection="column">
@@ -362,13 +406,13 @@ export const register: Register = (on, options) => {
             label={a.weak ? t.improve : t.refine}
             hotkey="m"
             variant={a.weak ? 'primary' : 'secondary'}
-            onPress={async () => improve($, (await $.prompt.read()).text.trim())}
+            onPress={() => improveFromBox($)}
           />
         </Box>
       )
     }
     const t = UI[p.lang]
-    if (p.isBusy) return <Text dimColor>{t.busy}</Text>
+    if (p.isBusy) return busyView($, e, t)
     const cols = e.props.bodyColumns
     // Poco alto: botones encima del editor, para que no queden fuera de la vista. Poco ancho o alto: lo que
     // falta, sin el motivo de cada criterio.
@@ -389,7 +433,7 @@ export const register: Register = (on, options) => {
           <Button key="apply" label={t.apply} hotkey="s" variant="primary" onPress={() => apply($)} />
         )}
         {p.isApplied && <Button key="undo" label={t.undo} hotkey="d" onPress={() => undo($)} />}
-        {p.isApplied && <Button key="again" label={t.again} hotkey="m" onPress={() => improve($, edited ?? p.text)} />}
+        {p.isApplied && <Button key="again" label={t.again} hotkey="m" onPress={() => improve($, p.original)} />}
         <Button
           key="copy"
           label={t.copy}
@@ -399,7 +443,7 @@ export const register: Register = (on, options) => {
             $.ui.toast(copied.isCopied ? t.copied : t.notCopied)
           }}
         />
-        <Button key="cancel" label={t.cancel} hotkey="x" onPress={() => dismiss($)} />
+        <Button key="cancel" label={t.cancel} hotkey="x" onPress={() => dismiss($, true)} />
       </Box>
     )
     return (

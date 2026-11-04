@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="880" height="350" viewBox="0 0 880 350" role="img" aria-labelledby="t d">
   <title id="t">Haiku, Sonnet or Opus · 16 real drafts in 6 languages</title>
-  <desc id="d">Cost per rewrite: Haiku $0.00055, Sonnet $0.0111, Opus $0.0239. Average score 93.4, 93.5 and 93.8. Usefulness per the judge 7.5, 7.9 and 8.0. Latency 3.8, 5.4 and 7.5 seconds.</desc>
+  <desc id="d">Cost per rewrite: Haiku $0.00055, Sonnet $0.0111, Opus $0.0239. Average score 93.4, 93.5 and 94.8. Usefulness per the judge 7.5, 7.9 and 8.0. Latency 3.8, 5.4 and 7.5 seconds.</desc>
   <style>
     :root { --bg:#ffffff; --fg:#0b0b0f; --muted:#5b5b6b; --line:#e4e2ee; --accent:#7c3aed; --other:#9a98a8; --third:#c9c7d3; }
     @media (prefers-color-scheme: dark) { :root { --bg:#000000; --fg:#f4f3f8; --muted:#a3a1b3; --line:#2a2833; --accent:#a78bfa; --other:#6d6b7b; --third:#3f3d4a; } }
@@ -28,8 +28,8 @@
 <text x="279" y="208" text-anchor="middle" fill="var(--fg)" font-weight="700" font-size="12.5">93.4</text>
 <rect x="314" y="215" width="46" height="85" rx="4" fill="var(--other)"/>
 <text x="337" y="207" text-anchor="middle" fill="var(--fg)" font-weight="700" font-size="12.5">93.5</text>
-<rect x="372" y="214" width="46" height="86" rx="4" fill="var(--third)"/>
-<text x="395" y="206" text-anchor="middle" fill="var(--fg)" font-weight="700" font-size="12.5">93.8</text>
+<rect x="372" y="208" width="46" height="92" rx="4" fill="var(--third)"/>
+<text x="395" y="200" text-anchor="middle" fill="var(--fg)" font-weight="700" font-size="12.5">94.8</text>
 <text x="456" y="104" font-weight="700" fill="var(--fg)" font-size="14">Usefulness (judge)</text>
 <text x="456" y="122" fill="var(--muted)" font-size="12">out of 10</text>
 <rect x="468" y="206" width="46" height="94" rx="4" fill="var(--accent)"/>

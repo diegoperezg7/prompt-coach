@@ -96,7 +96,7 @@ const WHY: Record<Lang, Record<WhyKey, string>> = {
 }
 
 export function normalize(text: string): string {
-  return String(text || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ß/g, 'ss')
+  return String(text || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ß/g, 'ss').replace(/[’‘]/g, "'")
 }
 
 // Palabras que delatan cada idioma; las compartidas (de, que, la) no cuentan para no confundir es, pt e it.
@@ -105,7 +105,8 @@ const STOPWORDS: Record<Lang, RegExp> = {
   en: /\b(the|and|for|with|this|that|from|into|should|please|need|make|is|of|to|it|when|there)\b/g,
   fr: /\b(le|les|des|du|pour|avec|est|ce|cette|mais|sans|et|dans|qui|pas|quand|il|je|vous)\b/g,
   de: /\b(der|die|das|und|ist|nicht|mit|fur|ein|eine|den|dem|zu|auf|wenn|ich|es|im|bei)\b/g,
-  pt: /\b(os|isso|sem|do|da|nao|no|na|em|com|um|uma|voce|quando|tambem|ao)\b/g,
+  // «no», «da» y «na» también son español: no delatan el portugués.
+  pt: /\b(os|isso|sem|do|nao|em|com|um|uma|voce|quando|tambem|ao|esta|pra)\b/g,
   it: /\b(il|gli|di|che|per|questo|ma|senza|della|non|sono|quando|anche|nel|del)\b/g,
 }
 
@@ -144,10 +145,15 @@ export function detectIntent(text: string): Intent {
 export const ATTACHMENT = /\[(?:Image|Pasted text) #\d+[^\]]*\]/g
 
 const EXT = 'ts|tsx|js|jsx|mjs|cjs|py|go|rs|java|kt|swift|rb|php|cs|c|cpp|h|css|scss|html|vue|svelte|md|sql|json|ya?ml|toml|sh|env'
-const PATH = new RegExp(String.raw`(?:~\/|\.{1,2}\/|\/)?[\w.-]+(?:\/[\w.-]+)+|\b[\w-]+\.(?:${EXT})\b`, 'g')
+// Una ruta: con extensión, con prefijo (./, ~/, /api), de tres tramos o más, o de dos con una carpeta típica.
+// Así «and/or», «ES/EN» o una fecha 04/11/2026 no cuentan como sitio donde actuar.
+const DIRS = 'src|app|apps|lib|libs|test|tests|spec|components|pages|hooks|core|api|docs|scripts|packages|server|client|backend|frontend|sources|config|utils|services|views|models'
+const PATH = new RegExp(String.raw`(?:[\w.-]+\/)*[\w.-]+\.(?:${EXT})\b|(?<![\w/])(?:~|\.{1,2})?\/[\w.-]+(?:\/[\w.-]+)*|\b[\w.-]+(?:\/[\w.-]+){2,}|\b(?:${DIRS})\/[\w.-]+|\b[\w.-]+\/(?:${DIRS})\b`, 'gi')
 const MENTION = /@[\w./-]+/g
 const CODE = /`([^`\n]{2,80})`/g
 const SYMBOL = /\b(?:[a-z]+[A-Z][A-Za-z0-9]*|[A-Z][a-z0-9]+[A-Z][A-Za-z0-9]*|[a-zA-Z_]\w*\(\))/g
+// Marcas en camelCase que no son código del proyecto.
+const BRANDS = /^(javascript|typescript|ios|ipados|macos|watchos|tvos|visionos|github|gitlab|bitbucket|youtube|iphone|ipad|linkedin|openai|chatgpt|nextjs|nodejs|postgresql|mongodb|graphql|mysql|sqlite|webkit|testflight|xcode|swiftui|uikit|appkit|devops|wordpress|paypal|tiktok|whatsapp|powerpoint|onedrive|sharepoint|vscode|jetbrains|intellij)$/i
 
 /** Rutas, @menciones, `código` y símbolos del texto: dónde tiene que actuar el agente. */
 export function anchorsOf(text: string, cwd = ''): string[] {
@@ -156,7 +162,7 @@ export function anchorsOf(text: string, cwd = ''): string[] {
   for (const re of [PATH, MENTION, SYMBOL]) for (const m of raw.matchAll(re)) found.add(m[0])
   for (const m of raw.matchAll(CODE)) if (m[1]) found.add(m[1])
   // El directorio del proyecto ya lo sabe el agente: repetirlo no concreta nada.
-  return [...found].filter(a => a.length > 2 && !(cwd && (cwd === a || cwd.startsWith(a) || cwd.endsWith(a.replace(/^\//, '')))))
+  return [...found].filter(a => a.length > 2 && !BRANDS.test(a) && !/^[\d/.-]+$/.test(a) && !(cwd && (cwd === a || cwd.startsWith(a) || cwd.endsWith(a.replace(/^\//, '')))))
 }
 
 const has = (re: RegExp, text: string) => re.test(text)
@@ -168,15 +174,20 @@ const CUE = {
   scoped: /\b(pantalla|vista|modulo|componente|endpoint|servicio|funcion|clase|tabla|pagina|formulario|boton|hook|widget|app|script|screen|view|module|component|service|function|class|page|form|button|api|repo|proyecto|project|ecran|vue|composant|fonction|bouton|bildschirm|ansicht|komponente|funktion|seite|formular|knopf|klasse|dienst|tela|funcao|botao|servico|schermata|funzione|pulsante|servizio|classe)\b/,
   quantity: /\b\d+(?:[.,]\d+)?\s?(?:px|ms|s|%|mb|kb|gb|segundos|minutos|lineas|filas|elementos|usuarios|items|lines|rows|users|seconds|minutes)?\b/,
   errorWord: /\b(error|excepcion|exception|traceback|stack trace|mensaje|message|log|warning|aviso|erreur|fehler|meldung|fehlermeldung|erro|mensagem|errore|messaggio)\b/,
-  example: /\b(por ejemplo|ejemplo|p\. ?ej\.|e\.g\.|for example|example|caso|par exemple|exemple|zum beispiel|beispiel|z\. ?b\.|exemplo|ad esempio|esempio)\b/,
+  example: /\b(?:por ejemplo|ejemplo|for example|example|caso|par exemple|exemple|zum beispiel|beispiel|exemplo|ad esempio|esempio)\b|\b(?:p\. ?ej|e\.g|i\.e|z\. ?b)\.(?=\W|$)/,
   expected: /\b(esperado|espero|deberia|en vez de|en lugar de|actualmente|ahora mismo|ahora|antes|despues|expected|should|instead of|currently|right now|before|after|attendu|devrait|au lieu de|actuellement|erwartet|sollte|statt|stattdessen|aktuell|derzeit|deveria|em vez de|atualmente|atteso|dovrebbe|invece di|attualmente)\b/,
   acceptStrong: /\b(criterio|criterios|aceptacion|hecho cuando|terminado cuando|esta listo cuando|definition of done|done when|acceptance|criteres|critere|acceptation|termine quand|fini quand|akzeptanzkriterien|abnahmekriterien|fertig wenn|aceitacao|pronto quando|criteri|accettazione|finito quando)\b/,
   acceptWeak: /\b(verifica|comprueba|comprobar|test|tests|prueba|pruebas|debe pasar|tiene que pasar|sin errores|check|verify|should pass|must pass|passes|verifie|doit passer|prufe|pruefe|muss bestehen|verifique|teste|deve passar|controlla|deve passare)\b/,
-  limits: /\b(no toques|no cambies|no modifiques|no anadas|no uses|no rompas|no borres|no reescribas|no instales|sin anadir|sin cambiar|sin tocar|sin dependencias|sin romper|solo|unicamente|evita|manten|respeta|restricciones|alcance|nunca|don'?t|do not|only|without|avoid|keep|never|constraints|scope|ne touche pas|ne modifie pas|ne change pas|sans|seulement|uniquement|evite|garde|jamais|contraintes|perimetre|nicht anfassen|nicht andern|nicht aendern|andere nicht|aendere nicht|beruhre nicht|fass nicht|ohne|nur|vermeide|behalte|niemals|einschrankungen|umfang|nao toque|nao mude|nao altere|sem|somente|apenas|mantenha|restricoes|escopo|non toccare|non cambiare|non modificare|senza|soltanto|mantieni|mai|vincoli|perimetro)\b/g,
+  // Solo límites con contenido: el nombre de la sección («Restricciones:») no cuenta, ni una palabra suelta
+  // («solo, nunca»): tiene que ir seguida de aquello a lo que limita («solo cambia X», «nunca toques Y»).
+  limits: /\b(no toques|no cambies|no modifiques|no anadas|no uses|no rompas|no borres|no reescribas|no instales|sin anadir|sin cambiar|sin tocar|sin dependencias|sin romper|solo|unicamente|evita|manten|respeta|nunca|don'?t|do not|only|without|avoid|keep|never|ne touche pas|ne modifie pas|ne change pas|sans|seulement|uniquement|evite|garde|jamais|nicht anfassen|nicht andern|nicht aendern|andere nicht|aendere nicht|beruhre nicht|fass nicht|ohne|nur|vermeide|behalte|niemals|nao toque|nao mude|nao altere|sem|somente|apenas|mantenha|non toccare|non cambiare|non modificare|senza|soltanto|mantieni|mai)\b(?=\s+[\w@/`'"«.-])/g,
+  // Imperativo negativo por idioma: «no modifiques», «no añadir», «ne pas changer», «non toccare»... Las
+  // terminaciones dejan fuera las descripciones del fallo («no funciona», «não funciona», «non funziona»).
+  negations: /\b(no [a-z]+(?:es|as|ar|er|ir)|ne pas [a-z]+|ne [a-z]+(?:e|er|ez) (?:pas|que|rien)|n'[a-z]+(?:e|er) (?:pas|que)|pas de nouve(?:au|aux|lle|lles)|keine? (?:neue[nr]?|weitere[nr]?|anderen?)|nicht [a-z]+en|nao [a-z]+(?:e|ar|er|ir)|non [a-z]+(?:are|ere|ire)|limita|limite|limit(?:e|ed)? (?:to|the|it)|no new)\b/g,
   // «devuelve» o «returns» a secas no cuentan: suelen describir el fallo («devuelve 500»), no la respuesta.
   format: /\b(formato|responde con|responde en|devuelveme|dame|entregame|resumen|resume|tabla|diff|en \d+ lineas|lista de cambios|output|respond with|reply with|give me|format|summary|table|bullet|list of changes|reponds avec|donne-moi|tableau|liste des changements|antwortformat|antworte mit|gib mir|zusammenfassung|tabelle|responda com|resumo|tabela|rispondi con|dammi|riepilogo|tabella)\b/,
   vague: /\b(esto|eso|aquello|lo de|algo|hazlo|arreglalo|cosas|cosa|etc|stuff|thing|things|whatever|somehow|truc|machin|zeug|irgendwie|coisa|coisas|troco|roba|coso)\b/g,
-  gapWord: /\b(rellena|fill in|tbd|xxx|remplir|ausfullen|preencha|compila)\b/g,
+  gapWord: /\b(rellena|fill in|tbd|xxx|remplir|ausfullen|preencha)\b/g,
 }
 
 /**
@@ -209,7 +220,7 @@ export function assess(text: string, opts: { known?: string; cwd?: string } = {}
   // Detalle concreto: hechos que acotan la tarea.
   const detail = [
     /"[^"\n]{3,}"|«[^»\n]{3,}»|“[^”\n]{3,}”|„[^“\n]{3,}“/.test(trimmed),
-    has(CUE.quantity, n.replace(PATH, ' ')),
+    has(CUE.quantity, normalize(trimmed.replace(ATTACHMENT, ' ')).replace(PATH, ' ')),
     has(CUE.errorWord, n),
     has(CUE.example, n),
     has(CUE.expected, n),
@@ -223,7 +234,7 @@ export function assess(text: string, opts: { known?: string; cwd?: string } = {}
   add('aceptacion', acceptStrong && words >= 15 ? 20 : acceptStrong || acceptWeak ? 12 : 0, acceptStrong || acceptWeak ? 'weakAccept' : 'noAccept')
 
   // Restricciones: qué no tocar y hasta dónde llegar.
-  const limits = count(CUE.limits, n)
+  const limits = new Set([...(n.match(CUE.limits) || []), ...(n.match(CUE.negations) || [])].map(x => x.trim())).size
   add('restricciones', limits >= 2 ? 15 : limits === 1 ? 8 : 0, limits === 1 ? 'oneLimit' : 'noLimit')
 
   // Formato de respuesta: qué devuelve el agente al terminar.
@@ -247,6 +258,17 @@ export function assess(text: string, opts: { known?: string; cwd?: string } = {}
     criteria,
     missing: criteria.filter(c => c.points < c.max),
   }
+}
+
+/**
+ * Una pregunta corta («¿por qué falla el build?») no es un encargo: la rúbrica mide encargos y la marcaría
+ * como floja sin serlo. La banda no la puntúa; /coach sigue disponible.
+ */
+export function isQuestion(text: string): boolean {
+  const t = String(text || '').trim()
+  if (!/\?\s*$/.test(t) && !t.startsWith('¿')) return false
+  const intent = detectIntent(t)
+  return (intent === 'ask' || intent === 'explain') && t.split(/\s+/).length <= 40
 }
 
 /** "contexto 8/15 (sin ruta concreta)", una por criterio incompleto, en el idioma pedido. */

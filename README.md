@@ -5,9 +5,9 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-1.3.0-7C3AED?style=flat-square">
+  <img alt="Version" src="https://img.shields.io/badge/version-1.3.1-7C3AED?style=flat-square">
   <img alt="Claude Code" src="https://img.shields.io/badge/Claude%20Code-mod-7C3AED?style=flat-square">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-19%20passing-15803d?style=flat-square">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-24%20passing-15803d?style=flat-square">
   <img alt="Models" src="https://img.shields.io/badge/models-Haiku%20%C2%B7%20Sonnet%20%C2%B7%20Opus-5b5b6b?style=flat-square">
   <img alt="Languages" src="https://img.shields.io/badge/languages-6-5b5b6b?style=flat-square">
   <img alt="License" src="https://img.shields.io/badge/license-MIT-5b5b6b?style=flat-square">
@@ -81,7 +81,7 @@ A band above the composer scores every keystroke: amber below 60, green from the
 |---|---|---|---|---|---|---|---|
 | **Haiku** (default) | 93.4 | 4/16 | 6 | 7.5/10 | 16/16 | **$0.00055** | **3.8 s** |
 | Sonnet | 93.5 | 4/16 | 6 | 7.9/10 | 16/16 | $0.0111 | 5.4 s |
-| Opus | 93.8 | 5/16 | 4 | 8.0/10 | 16/16 | $0.0239 | 7.5 s |
+| Opus | 94.8 | 5/16 | 4 | 8.0/10 | 16/16 | $0.0239 | 7.5 s |
 
 Opus writes slightly more useful proposals at 43x the cost of Haiku; the choice is yours with the `model` setting. Rerun it with `node --experimental-strip-types bench/run.mts haiku,sonnet,opus opus balanced`.
 
@@ -126,7 +126,7 @@ Shorter proposals leave less room for constraints and detail, so they score a li
 
 ```
 claude --plugin-dir .        # load without installing
-claude plugin test .         # 19 tests: terminal, desktop and VS Code, widths and heights, languages, settings
+claude plugin test .         # 24 tests: terminal, desktop and VS Code, widths and heights, languages, settings
 claude plugin validate .
 ```
 

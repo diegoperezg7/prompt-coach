@@ -19,6 +19,7 @@ const statuses: (string | undefined)[] = []
 const submitted: string[] = []
 let box = 'arregla el login'
 let placed = true
+let submitDrop = false
 
 function engine(on: Parameters<Parameters<typeof test>[1]>[1], model: unknown, fills: string[] = [], rows: { role: 'user' | 'assistant'; text: string; toolUses: never[] }[] = []) {
   on('session.messages', () => ({ value: rows }))
@@ -34,7 +35,7 @@ function engine(on: Parameters<Parameters<typeof test>[1]>[1], model: unknown, f
   on('model.complete', (_, e) => { asked.push(String(e.prompt)); systems.push(String(e.system)); models.push(e.model); return { value: typeof model === 'function' ? model(String(e.prompt)) : model } })
   on('prompt.read', () => ({ value: { text: box, cursor: box.length } }))
   on('prompt.change', (_, e) => ({ text: e.text }))
-  on('prompt.submit', (_, e) => { submitted.push(e.text); return { text: e.text } })
+  on('prompt.submit', (_, e) => { submitted.push(e.text); return submitDrop ? { drop: 'blocked by a settings hook' } : { text: e.text } })
   on('prompt.edit', (_, e) => {
     const text = e.text.slice(0, e.start) + e.inputText + e.text.slice(e.end)
     return { text, cursor: e.start + e.inputText.length }
@@ -380,5 +381,61 @@ test('a French draft gets a French interface on auto, a French rewrite and a fai
   expect(assess(FR, { known: 'corrige la connexion dans src/auth/login.ts qui renvoie une erreur 500' }).score).toBe(100)
   const ui = await $.ui.mount({ ...PANE, surface: 'vscode' })
   expect((await ui.find({ type: 'Button', key: 'send' }))?.text).toBe('Envoyer la proposition')
+  await ui.unmount()
+})
+
+test('keyword stuffing without content scores weak; real negative imperatives count as constraints, bug descriptions do not', async () => {
+  expect(assess('Objetivo: algo. Contexto: esto. Criterio de aceptación: test. Restricciones: solo, nunca. Formato: tabla.').weak).toBe(true)
+  expect(assess('Goal: stuff. Acceptance criteria: test. Constraints: only, never. Format: table. Context: the thing.').weak).toBe(true)
+  const limits = (t: string) => assess(t).criteria.find(c => c.id === 'restricciones')?.points
+  expect(limits('Restricciones:\n- No modificar reconcile.py.\n- No añadir dependencias.')).toBe(15)
+  expect(limits("Contraintes :\n- Ne pas changer les dépendances.\n- Ne toucher que la connexion.")).toBe(15)
+  expect(limits('Vincoli:\n- Non modificare il codice di produzione.\n- Non aggiungere dipendenze.')).toBe(15)
+  expect(limits('Einschränkungen:\n- Keine neuen Abhängigkeiten.\n- Ändere nur den Export.')).toBe(15)
+  expect(limits('el login no funciona y la app no arranca desde ayer en el simulador')).toBe(0)
+})
+
+test('the band does not score a short question; /coach still improves it', async ($, on) => {
+  engine(on, { isAnswered: true, text: FULL, usage: USAGE }, [], ROWS)
+  on('ui.render', ($, e) => { const { Text } = $.ui.resolve(e); return <Text>engine</Text> })
+  await $.session.start({ cwd: '/tmp/demo-app', surface: 'terminal', isInteractive: true })
+  await $.prompt.edit({ origin: { kind: 'composer' }, text: 'what does useBudget.ts return when the list is empty', cursor: 52, start: 52, end: 52, inputText: '?' })
+  const band = await $.ui.mount({ ...BAND, surface: 'terminal' })
+  expect(await band.find({ type: 'Button', key: 'improve' })).toBeUndefined()
+  expect(await band.find({ type: 'Text', text: 'engine' })).toBeDefined()
+  await band.unmount()
+  await $.session.start({ cwd: '/tmp/demo-app', surface: 'vscode', isInteractive: true })
+  const ran = await $.command.run({ command: 'coach', args: 'what does useBudget.ts return when the list is empty?', origin: ORIGIN, presentation: 'transcript' })
+  expect(ran.text).toMatch(/proposal ready in the pane/)
+})
+
+test('an engine failure in the middle never leaves the pane busy: the draft comes back with a note', async ($, on) => {
+  engine(on, () => { throw new Error('model blocked') })
+  await $.session.start({ cwd: '/tmp/demo-app', surface: 'vscode', isInteractive: true })
+  const ran = await $.command.run({ command: 'coach', args: 'arregla el login', origin: ORIGIN, presentation: 'transcript' })
+  expect(ran.text).toMatch(/arregla el login$/)
+  const ui = await $.ui.mount({ ...PANE, surface: 'vscode' })
+  expect(await ui.find({ type: 'Text', text: /Mejorando/ })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /El modelo no respondió/ })).toBeDefined()
+  await ui.unmount()
+})
+
+test('claude -p and the SDK never hold a prompt: there is nobody to choose', async ($, on) => {
+  engine(on, { isAnswered: true, text: FULL, usage: USAGE })
+  await $.session.start({ cwd: '/tmp/demo-app', surface: null, isInteractive: false })
+  expect((await $.prompt.submit({ text: 'arregla el login', origin: { kind: 'sdk' }, wait: false })).text).toBe('arregla el login')
+  expect((await $.prompt.submit({ text: 'arregla el login', origin: { kind: 'composer' }, wait: false })).text).toBe('arregla el login')
+})
+
+test('if sending the proposal is refused, the person gets the original draft back in the composer', async ($, on) => {
+  const fills: string[] = []
+  engine(on, { isAnswered: true, text: FULL, usage: USAGE }, fills, ROWS)
+  await $.session.start({ cwd: '/tmp/demo-app', surface: 'vscode', isInteractive: true })
+  await $.command.run({ command: 'coach', args: 'arregla el login', origin: ORIGIN, presentation: 'transcript' })
+  submitDrop = true
+  const ui = await $.ui.mount({ ...PANE, surface: 'vscode' })
+  await ui.press({ plugin: 'prompt-coach', key: 'send' })
+  submitDrop = false
+  expect(fills.at(-1)).toBe('arregla el login')
   await ui.unmount()
 })

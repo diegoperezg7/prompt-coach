@@ -5,9 +5,9 @@
 </p>
 
 <p align="center">
-  <img alt="Versión" src="https://img.shields.io/badge/versi%C3%B3n-1.3.0-7C3AED?style=flat-square">
+  <img alt="Versión" src="https://img.shields.io/badge/versi%C3%B3n-1.3.1-7C3AED?style=flat-square">
   <img alt="Claude Code" src="https://img.shields.io/badge/Claude%20Code-mod-7C3AED?style=flat-square">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-19%20passing-15803d?style=flat-square">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-24%20passing-15803d?style=flat-square">
   <img alt="Modelos" src="https://img.shields.io/badge/modelos-Haiku%20%C2%B7%20Sonnet%20%C2%B7%20Opus-5b5b6b?style=flat-square">
   <img alt="Idiomas" src="https://img.shields.io/badge/idiomas-6-5b5b6b?style=flat-square">
   <img alt="Licencia" src="https://img.shields.io/badge/licencia-MIT-5b5b6b?style=flat-square">
@@ -81,7 +81,7 @@ Una banda sobre el compositor puntúa cada tecla: ámbar por debajo de 60, verde
 |---|---|---|---|---|---|---|---|
 | **Haiku** (por defecto) | 93,4 | 4/16 | 6 | 7,5/10 | 16/16 | **0,00055 $** | **3,8 s** |
 | Sonnet | 93,5 | 4/16 | 6 | 7,9/10 | 16/16 | 0,0111 $ | 5,4 s |
-| Opus | 93,8 | 5/16 | 4 | 8,0/10 | 16/16 | 0,0239 $ | 7,5 s |
+| Opus | 94,8 | 5/16 | 4 | 8,0/10 | 16/16 | 0,0239 $ | 7,5 s |
 
 Opus escribe propuestas algo más útiles a 43 veces el coste de Haiku; lo eliges tú con la opción `model`. Se repite con `node --experimental-strip-types bench/run.mts haiku,sonnet,opus opus balanced`.
 
@@ -126,7 +126,7 @@ Con menos texto caben menos restricciones y detalles, así que la nota baja un p
 
 ```
 claude --plugin-dir .        # cargar sin instalar
-claude plugin test .         # 19 tests: terminal, escritorio y VS Code, anchos y altos, idiomas, ajustes
+claude plugin test .         # 24 tests: terminal, escritorio y VS Code, anchos y altos, idiomas, ajustes
 claude plugin validate .
 ```
 
