@@ -261,3 +261,27 @@ test('a path the model invented does not count as context, and the pane says wha
   expect((await ui.find({ type: 'Text', text: /Falta para 100/ }))?.text).toMatch(/contexto 8\/15 \(ruta o símbolo que no aparece/)
   await ui.unmount()
 })
+
+test('terminal and desktop adapt to the room: narrow band keeps score and button, short pane shrinks the editor and keeps every button', async ($, on) => {
+  engine(on, { isAnswered: true, text: 'Objetivo\nArregla el login.', usage: USAGE })
+  for (const surface of ['terminal', 'desktop'] as const) {
+    await $.session.start({ cwd: '/tmp/demo-app', surface, isInteractive: true })
+    await $.prompt.edit({ origin: { kind: 'composer' }, text: 'arregla el logi', cursor: 15, start: 15, end: 15, inputText: 'n' })
+
+    for (const [bodyColumns, label] of [[30, false], [80, true]] as const) {
+      const band = await $.ui.mount({ ...BAND, props: { ...BAND.props, bodyColumns }, surface })
+      expect(await band.find({ type: 'Text', text: '5/100' })).toBeDefined()
+      expect(Boolean(await band.find({ type: 'Text', text: 'Prompt flojo' }))).toBe(label)
+      expect(await band.find({ type: 'Button', key: 'improve' })).toBeDefined()
+      await band.unmount()
+    }
+
+    await $.command.run({ command: 'coach', args: 'arregla el login', origin: ORIGIN, presentation: 'transcript' })
+    for (const [bodyColumns, bodyRows, editor] of [[30, 10, 3], [60, 18, 10], [120, 40, 14]] as const) {
+      const ui = await $.ui.mount({ ...PANE, props: { ...PANE.props, bodyColumns, scroll: { offset: 0, bodyRows } }, surface })
+      expect((await ui.find({ type: 'Input', key: 'proposal' }))?.props.rows).toBe(editor)
+      for (const key of ['apply', 'copy', 'cancel']) expect(await ui.find({ type: 'Button', key })).toBeDefined()
+      await ui.unmount()
+    }
+  }
+})

@@ -155,6 +155,18 @@ async function undo($: EngineInterface) {
 // en VS Code el panel es fijo, con el botón, y solo vuelve al estado inicial.
 const tone = (score: number) => (score < WEAK_BELOW ? 'warning' : 'success')
 
+// Por debajo de este ancho la banda deja solo la nota y el botón.
+const NARROW = 40
+
+// Alto del editor del panel en terminal: lo que deja libre el resto, entre 3 y 14 filas, para que los botones
+// no queden fuera de la vista en un terminal bajo o con el panel encima del prompt. En poco alto, sin huecos.
+export function paneLayout(bodyRows: number, cols: number, lines: string[]) {
+  const shown = lines.filter(Boolean)
+  const gap = bodyRows < 20 ? 0 : 1
+  const used = shown.reduce((sum, line) => sum + Math.max(1, Math.ceil(line.length / Math.max(1, cols))), 0) + gap * shown.length
+  return { gap, rows: Math.max(3, Math.min(14, bodyRows - used)) }
+}
+
 // ponytail: sondeo del compositor cada segundo porque la extensión de VS Code no envía prompt.edit; quitar cuando lo envíe.
 const POLL_MS = 1000
 let isPolling = false
@@ -292,9 +304,9 @@ export const register: Register = on => {
     const t = UI[langOf(text)]
     const { Box, Button, Text } = $.ui.resolve(e)
     return (
-      <Box gap={1}>
-        <Text color={a.weak ? 'warning' : 'success'}>{a.weak ? t.weak : t.solid}</Text>
-        <Text dimColor>{a.score}/100</Text>
+      <Box flexWrap="wrap" gap={1}>
+        {e.props.bodyColumns >= NARROW && <Text color={tone(a.score)}>{a.weak ? t.weak : t.solid}</Text>}
+        <Text color={e.props.bodyColumns >= NARROW ? undefined : tone(a.score)} dimColor={e.props.bodyColumns >= NARROW}>{a.score}/100</Text>
         <Button
           key="improve"
           label={a.weak ? t.improve : t.refine}
@@ -352,8 +364,8 @@ export const register: Register = on => {
       const a = assess(text)
       const t = UI[langOf(text)]
       return (
-        <Box gap={1}>
-          <Text color={a.weak ? 'warning' : 'success'}>{a.weak ? t.weak : t.solid}</Text>
+        <Box flexWrap="wrap" gap={1}>
+          <Text color={tone(a.score)}>{a.weak ? t.weak : t.solid}</Text>
           <Text dimColor>{a.score}/100</Text>
           <Button
             key="improve"
@@ -367,9 +379,17 @@ export const register: Register = on => {
     }
     const t = UI[p.lang]
     if (p.isBusy) return <Text dimColor>{t.busy}</Text>
+    const cols = e.props.bodyColumns
+    const missing = p.missing.length > 0 ? `${t.toFull}: ${p.missing.join('; ')}` : ''
+    const changes = p.changes.length > 0 ? `${t.added}: ${p.changes.join(', ')}` : ''
+    const labels = p.isApplied ? [t.applied, t.undo, t.again, t.copy, t.cancel] : [t.apply, t.copy, t.cancel]
+    const { gap, rows } = paneLayout(e.props.scroll.bodyRows, cols, [
+      `${t.proposal} ${p.before}/100 → ${p.after}/100 ${t.fromModel}: ${p.model ?? ''}`, p.note ?? '', changes, missing,
+      labels.map(l => `[ ${l} (x) ]`).join(' '),
+    ])
     return (
-      <Box flexDirection="column" gap={1}>
-        <Box gap={1}>
+      <Box flexDirection="column" gap={gap}>
+        <Box flexWrap="wrap" gap={1}>
           <Text bold>{t.proposal}</Text>
           <Text dimColor>{p.before}/100 → {p.after}/100</Text>
           <Text color={p.origin === 'model' ? 'success' : 'warning'}>
@@ -377,17 +397,17 @@ export const register: Register = on => {
           </Text>
         </Box>
         {p.note !== undefined && <Text color="warning">{p.note}</Text>}
-        {p.changes.length > 0 && <Text dimColor>{t.added}: {p.changes.join(', ')}</Text>}
-        {p.missing.length > 0 && <Text dimColor>{t.toFull}: {p.missing.join('; ')}</Text>}
+        {changes !== '' && <Text dimColor>{changes}</Text>}
+        {missing !== '' && <Text dimColor>{missing}</Text>}
         <Input
           key="proposal"
           value={p.text}
-          rows={14}
+          rows={rows}
           submitLabel={t.apply}
           onInput={value => { edited = value }}
           onSubmit={value => apply($, value)}
         />
-        <Box gap={1}>
+        <Box flexWrap="wrap" gap={1}>
           {p.isApplied ? (
             <Text color="success">{t.applied}</Text>
           ) : (
