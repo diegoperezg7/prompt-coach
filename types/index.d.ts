@@ -10,6 +10,12 @@ export type Proposal = {
   model?: string
   note?: string
   changes: string[]
+  /** Criterios de la rúbrica por debajo de su máximo, ya redactados ("contexto 8/15 (...)"). */
+  missing: string[]
+  /** Llamadas al modelo que respondieron: 1, o 2 con la pasada de reparación. */
+  passes: number
+  /** Tokens de entrada y salida sumados de todas las pasadas. */
+  tokens?: number
   isBusy: boolean
   isApplied: boolean
 }

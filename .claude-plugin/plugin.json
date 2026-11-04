@@ -1,7 +1,7 @@
 {
   "name": "prompt-coach",
-  "version": "1.0.0",
-  "description": "Puntúa el borrador del prompt mientras escribes y lo reescribe con Sonnet (o con reglas locales) antes de enviarlo. Terminal, escritorio y extensión de VS Code.",
+  "version": "1.1.0",
+  "description": "Puntúa el borrador del prompt mientras escribes y lo reescribe con Haiku (o con reglas locales) antes de enviarlo. Terminal, escritorio y extensión de VS Code.",
   "author": { "name": "Diego Pérez" },
   "license": "MIT",
   "types": "./types/index.d.ts"

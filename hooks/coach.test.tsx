@@ -27,7 +27,7 @@ function engine(on: Parameters<Parameters<typeof test>[1]>[1], model: unknown, f
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('session.cwd', () => ({ value: '/tmp/demo-app' }))
   on('session.model', () => ({ value: 'opus' }))
-  on('model.complete', (_, e) => { asked.push(e.prompt); return { value: model } })
+  on('model.complete', (_, e) => { asked.push(String(e.prompt)); return { value: typeof model === 'function' ? model(String(e.prompt)) : model } })
   on('prompt.read', () => ({ value: { text: box, cursor: box.length } }))
   on('prompt.change', (_, e) => ({ text: e.text }))
   on('prompt.submit', (_, e) => { submitted.push(e.text); return { text: e.text } })
@@ -59,13 +59,13 @@ test('on vscode the band follows the composer by polling: nothing when empty or 
 
   box = 'arregla el login'
   await clock.advance(1000)
-  expect(await ui.find({ type: 'Text', text: '28' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: '5' })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: 'Prompt flojo' })).toBeDefined()
   expect(await ui.find({ type: 'Button', key: 'improve' })).toBeDefined()
   await ui.unmount()
 
   ui = await at(30)
-  expect(await ui.find({ type: 'Text', text: '28' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: '5' })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: 'Prompt flojo' })).toBeUndefined()
   expect(await ui.find({ type: 'Button', key: 'improve' })).toBeDefined()
   await ui.unmount()
@@ -134,10 +134,11 @@ test('on vscode the command returns the whole proposal, the pane draws it as tex
   await $.session.start({ cwd: '/tmp/demo-app', surface: 'vscode', isInteractive: true })
   const ran = await $.command.run({ command: 'coach', args: 'arregla el login', origin: ORIGIN, presentation: 'transcript' })
   expect(ran.text).toBe('Prompt Coach: propuesta lista en el panel.\n\nObjetivo\nArregla el login.')
-  expect(asked.at(-1)).toMatch(/Conversación reciente[\s\S]*user: acabo de cambiar el hook de prompt.edit[\s\S]*Borrador a reescribir:\narregla el login$/)
+  expect(asked.at(-2)).toMatch(/Conversación reciente[\s\S]*user: acabo de cambiar el hook de prompt.edit[\s\S]*Borrador a reescribir:\narregla el login$/)
+  expect(asked.at(-1)).toMatch(/Tu versión anterior \(\d+\/100\)[\s\S]*Le falta:\n- objetivo/)
 
   const ui = await $.ui.mount({ ...PANE, surface: 'vscode' })
-  expect((await ui.find({ type: 'Text', text: /modelo: sonnet/ }))?.text).toBe('modelo: sonnet')
+  expect((await ui.find({ type: 'Text', text: /modelo: haiku/ }))?.text).toBe('modelo: haiku')
   expect(await ui.find({ type: 'Input', key: 'proposal' })).toBeUndefined()
   expect((await ui.find({ type: 'Text', text: /^Objetivo$/ }))?.text).toBe('Objetivo')
   expect((await ui.find({ type: 'Text', text: /^Arregla el login\.$/ }))?.text).toBe('Arregla el login.')
@@ -183,7 +184,7 @@ test('on vscode a weak work prompt is held with its proposal; solid or short one
 
   await $.session.start({ cwd: '/tmp/demo-app', surface: 'vscode', isInteractive: true })
   const held = await $.prompt.submit({ text: 'arregla el login', origin: { kind: 'composer' }, wait: false })
-  expect(held.drop).toMatch(/^Prompt Coach: Prompt flojo 28\/100 → \d+\/100\. Retenido[\s\S]*\n\nObjetivo\nArregla el login\.$/)
+  expect(held.drop).toMatch(/^Prompt Coach: Prompt flojo 5\/100 → \d+\/100\. Retenido[\s\S]*\n\nObjetivo\nArregla el login\.$/)
 
   const ui = await $.ui.mount({ ...PANE, surface: 'vscode' })
   expect((await ui.find({ type: 'Text', text: /^Arregla el login\.$/ }))?.text).toBe('Arregla el login.')
@@ -202,4 +203,61 @@ test('on the terminal the same weak prompt is never held', async ($, on) => {
 
   await $.session.start({ cwd: '/tmp/demo-app', surface: 'terminal', isInteractive: true })
   expect((await $.prompt.submit({ text: 'arregla el login', origin: { kind: 'composer' }, wait: false })).text).toBe('arregla el login')
+})
+
+// Propuesta que cubre la rúbrica entera con una ruta que sí está en la conversación.
+const FULL = [
+  'Objetivo:',
+  'Arreglar que el login no muestre el error cuando la contraseña es incorrecta en `hooks/register.tsx`.',
+  'Contexto:',
+  '- Archivo: hooks/register.tsx, que se acaba de cambiar en el hook de prompt.edit.',
+  'Detalle:',
+  '- Actualmente la vista no cambia al fallar.',
+  '- Esperado: aparece el mensaje "Contraseña incorrecta".',
+  'Criterio de aceptación:',
+  '- Un test con contraseña errónea encuentra el mensaje y la suite pasa.',
+  'Restricciones:',
+  '- No toques el flujo de registro.',
+  '- Sin dependencias nuevas.',
+  'Formato de respuesta:',
+  '- Diff resumido por archivo y resultado de los tests.',
+].join('\n')
+const ROWS = [
+  { role: 'user' as const, text: 'acabo de cambiar el hook de prompt.edit en hooks/register.tsx', toolUses: [] as never[] },
+]
+
+test('a weak first rewrite gets one targeted repair pass and the better version wins at a real 100', async ($, on) => {
+  asked.length = 0
+  engine(on, (prompt: string) => ({ isAnswered: true, text: /Tu versión anterior/.test(prompt) ? FULL : 'Objetivo\nArregla el login.', usage: USAGE }), [], ROWS)
+
+  await $.session.start({ cwd: '/tmp/demo-app', surface: 'vscode', isInteractive: true })
+  await $.command.run({ command: 'coach', args: 'arregla el login', origin: ORIGIN, presentation: 'transcript' })
+  expect(asked.length).toBe(2)
+
+  const ui = await $.ui.mount({ ...PANE, surface: 'vscode' })
+  expect(await ui.find({ type: 'Text', text: 'Criterio de aceptación:' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: '100' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /Falta para 100/ })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('a full first rewrite is not sent back for repair', async ($, on) => {
+  asked.length = 0
+  engine(on, { isAnswered: true, text: FULL, usage: USAGE }, [], ROWS)
+
+  await $.session.start({ cwd: '/tmp/demo-app', surface: 'vscode', isInteractive: true })
+  await $.command.run({ command: 'coach', args: 'arregla el login', origin: ORIGIN, presentation: 'transcript' })
+  expect(asked.length).toBe(1)
+})
+
+test('a path the model invented does not count as context, and the pane says what is missing for 100', async ($, on) => {
+  engine(on, { isAnswered: true, text: FULL, usage: USAGE })
+
+  await $.session.start({ cwd: '/tmp/demo-app', surface: 'vscode', isInteractive: true })
+  const ran = await $.command.run({ command: 'coach', args: 'arregla el login', origin: ORIGIN, presentation: 'transcript' })
+  expect(ran.text).toMatch(/Prompt Coach/)
+
+  const ui = await $.ui.mount({ ...PANE, surface: 'vscode' })
+  expect((await ui.find({ type: 'Text', text: /Falta para 100/ }))?.text).toMatch(/contexto 8\/15 \(ruta o símbolo que no aparece/)
+  await ui.unmount()
 })
