@@ -110,6 +110,17 @@ const STOPWORDS: Record<Lang, RegExp> = {
   it: /\b(il|gli|di|che|per|questo|ma|senza|della|non|sono|quando|anche|nel|del)\b/g,
 }
 
+/**
+ * Idioma del texto y si la detección es segura: al menos una palabra delatora y más que cualquier otro idioma.
+ * Con una o dos palabras («fix», «corrige la») no lo es, y quien muestra la interfaz no debería cambiar de idioma.
+ */
+export function detectLang(text: string): { lang: Lang; sure: boolean } {
+  const value = ' ' + normalize(text) + ' '
+  const counts = (['es', 'en', 'pt', 'it', 'fr', 'de'] as const).map(lang => ({ lang, n: (value.match(STOPWORDS[lang]) || []).length }))
+  const [first, second] = [...counts].sort((x, y) => y.n - x.n)
+  return { lang: langOf(text), sure: !!first && first.n >= 1 && first.n > (second?.n ?? 0) }
+}
+
 /** Idioma del texto por palabras frecuentes; con empate o sin pistas, español, como hasta ahora. */
 export function langOf(text: string): Lang {
   const value = ' ' + normalize(text) + ' '

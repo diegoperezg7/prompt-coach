@@ -466,3 +466,15 @@ test('from 60 columns the band names the criterion that costs the most; narrower
     await narrow.unmount()
   }
 })
+
+test('on auto the interface keeps its language while the first words are ambiguous', async ($, on) => {
+  engine(on, { isAnswered: true, text: FULL, usage: USAGE })
+  await $.session.start({ cwd: '/tmp/demo-app', surface: 'terminal', isInteractive: true })
+  await $.prompt.edit({ origin: { kind: 'composer' }, text: 'fix the logi', cursor: 12, start: 12, end: 12, inputText: 'n' })
+  await $.prompt.change({ text: '', cursor: 0, origin: { kind: 'clear' } })
+  await $.prompt.edit({ origin: { kind: 'composer' }, text: 'fi', cursor: 2, start: 2, end: 2, inputText: 'x' })
+  const band = await $.ui.mount({ ...BAND, props: { ...BAND.props, bodyColumns: 80 }, surface: 'terminal' })
+  expect(await band.find({ type: 'Text', text: 'Weak prompt' })).toBeDefined()
+  expect(await band.find({ type: 'Text', text: 'Prompt flojo' })).toBeUndefined()
+  await band.unmount()
+})

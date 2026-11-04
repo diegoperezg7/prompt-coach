@@ -3,7 +3,7 @@ import type { EngineInterface, ModelCompleteResult, Register } from 'claude-code
 
 import type { Proposal } from '../types'
 import {
-  assess, buildPrompt, describeMissing, isQuestion, isRepairable, LABEL, topGap, keepAttachments, LANGS, langOf, recentContext, repairPrompt,
+  assess, buildPrompt, describeMissing, detectLang, isQuestion, isRepairable, LABEL, topGap, keepAttachments, LANGS, langOf, recentContext, repairPrompt,
   rewritePrompt, systemPrompt, unfence, WEAK_BELOW,
 } from '../core/rubric.ts'
 import type { Lang, Verbosity } from '../core/rubric.ts'
@@ -25,7 +25,19 @@ let uiSetting: 'auto' | Lang = 'auto'
 const MODELS = ['haiku', 'sonnet', 'opus'] as const
 let model: string = 'haiku'
 let verbosity: Verbosity = 'balanced'
-const uiLang = (text: string): Lang => (uiSetting === 'auto' ? langOf(text) : uiSetting)
+// En `auto`, el idioma del borrador solo cuando la detección es segura; si no, el último seguro. Así la interfaz
+// no salta de idioma con las primeras palabras («fix» sin más se leería como español).
+let lastLang: Lang | null = null
+const uiLang = (text: string): Lang => {
+  if (uiSetting !== 'auto') return uiSetting
+  const d = detectLang(text)
+  return d.sure ? d.lang : lastLang ?? d.lang
+}
+// Fija el último idioma seguro; se llama desde eventos, nunca mientras se dibuja.
+function noteLang(text: string) {
+  const d = detectLang(text)
+  if (d.sure) lastLang = d.lang
+}
 const ui = (text: string) => UI[uiLang(text)]
 
 const isCoachable = (text: string) => text.trim().length > 0 && !text.trimStart().startsWith('/')
@@ -182,6 +194,7 @@ async function pollComposer($: EngineInterface) {
   const box = await $.prompt.read().catch(() => null)
   if (!box || box.text === lastPolled) return
   lastPolled = box.text
+  noteLang(box.text)
   await update($, draft, () => box.text)
 }
 function startPoll($: EngineInterface) {
@@ -226,6 +239,7 @@ async function dismiss($: EngineInterface, restore = false) {
 
 // Lo que hay en el compositor: teclear llega por prompt.edit, lo demás (historial, fill, clear) por prompt.change.
 async function onDraft($: EngineInterface, text: string, isOwnFill: boolean) {
+  noteLang(text)
   await update($, draft, () => text)
   if (!isOwnFill && (await read($, proposal))) void dismiss($)
   if (hasBand) return
