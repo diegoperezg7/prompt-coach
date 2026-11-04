@@ -278,7 +278,7 @@ test('terminal and desktop adapt to the room: narrow band keeps score and button
     }
 
     await $.command.run({ command: 'coach', args: 'arregla el login', origin: ORIGIN, presentation: 'transcript' })
-    for (const [bodyColumns, bodyRows, editor] of [[30, 10, 3], [60, 18, 10], [120, 40, 14]] as const) {
+    for (const [bodyColumns, bodyRows, editor] of [[30, 10, 3], [60, 18, 13], [120, 40, 14]] as const) {
       const ui = await $.ui.mount({ ...PANE, props: { ...PANE.props, bodyColumns, scroll: { offset: 0, bodyRows } }, surface })
       expect((await ui.find({ type: 'Input', key: 'proposal' }))?.props.rows).toBe(editor)
       for (const key of ['apply', 'copy', 'cancel']) expect(await ui.find({ type: 'Button', key })).toBeDefined()

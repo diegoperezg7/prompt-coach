@@ -391,13 +391,38 @@ export const register: Register = on => {
     const t = UI[p.lang]
     if (p.isBusy) return <Text dimColor>{t.busy}</Text>
     const cols = e.props.bodyColumns
-    const missing = p.missing.length > 0 ? `${t.toFull}: ${p.missing.join('; ')}` : ''
+    // Poco alto: botones encima del editor, para que no queden fuera de la vista. Poco ancho o alto: lo que
+    // falta, sin el motivo de cada criterio.
+    const short = e.props.scroll.bodyRows < 20
+    const reasons = cols >= 60 && !short
+    const missing = p.missing.length > 0 ? `${t.toFull}: ${p.missing.map(m => (reasons ? m : m.replace(/ \(.*\)$/, ''))).join('; ')}` : ''
     const changes = p.changes.length > 0 ? `${t.added}: ${p.changes.join(', ')}` : ''
     const labels = p.isApplied ? [t.applied, t.undo, t.again, t.copy, t.cancel] : [t.apply, t.copy, t.cancel]
     const { gap, rows } = paneLayout(e.props.scroll.bodyRows, cols, [
       `${t.proposal} ${p.before}/100 → ${p.after}/100 ${t.fromModel}: ${p.model ?? ''}`, p.note ?? '', changes, missing,
       labels.map(l => `[ ${l} (x) ]`).join(' '),
     ])
+    const actions = (
+      <Box flexWrap="wrap" gap={1}>
+        {p.isApplied ? (
+          <Text color="success">{t.applied}</Text>
+        ) : (
+          <Button key="apply" label={t.apply} hotkey="s" variant="primary" onPress={() => apply($)} />
+        )}
+        {p.isApplied && <Button key="undo" label={t.undo} hotkey="d" onPress={() => undo($)} />}
+        {p.isApplied && <Button key="again" label={t.again} hotkey="m" onPress={() => improve($, edited ?? p.text)} />}
+        <Button
+          key="copy"
+          label={t.copy}
+          hotkey="c"
+          onPress={async press => {
+            const copied = await $.ui.copy({ text: edited ?? p.text, surface: press.surface })
+            $.ui.toast(copied.isCopied ? t.copied : t.notCopied)
+          }}
+        />
+        <Button key="cancel" label={t.cancel} hotkey="x" onPress={() => dismiss($)} />
+      </Box>
+    )
     return (
       <Box flexDirection="column" gap={gap}>
         <Box flexWrap="wrap" gap={1}>
@@ -410,6 +435,7 @@ export const register: Register = on => {
         {p.note !== undefined && <Text color="warning">{p.note}</Text>}
         {changes !== '' && <Text dimColor>{changes}</Text>}
         {missing !== '' && <Text dimColor>{missing}</Text>}
+        {short && actions}
         <Input
           key="proposal"
           value={p.text}
@@ -418,25 +444,7 @@ export const register: Register = on => {
           onInput={value => { edited = value }}
           onSubmit={value => apply($, value)}
         />
-        <Box flexWrap="wrap" gap={1}>
-          {p.isApplied ? (
-            <Text color="success">{t.applied}</Text>
-          ) : (
-            <Button key="apply" label={t.apply} hotkey="s" variant="primary" onPress={() => apply($)} />
-          )}
-          {p.isApplied && <Button key="undo" label={t.undo} hotkey="d" onPress={() => undo($)} />}
-          {p.isApplied && <Button key="again" label={t.again} hotkey="m" onPress={() => improve($, edited ?? p.text)} />}
-          <Button
-            key="copy"
-            label={t.copy}
-            hotkey="c"
-            onPress={async press => {
-              const copied = await $.ui.copy({ text: edited ?? p.text, surface: press.surface })
-              $.ui.toast(copied.isCopied ? t.copied : t.notCopied)
-            }}
-          />
-          <Button key="cancel" label={t.cancel} hotkey="x" onPress={() => dismiss($)} />
-        </Box>
+        {!short && actions}
       </Box>
     )
   })
