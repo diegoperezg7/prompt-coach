@@ -29,7 +29,7 @@ Una banda sobre el compositor puntúa cada tecla: ámbar por debajo de 60, verde
 
 ## Mejorar con un comando
 
-`/coach` (o el botón de la banda) reescribe el borrador con el modelo que elijas (Haiku por defecto) usando la conversación reciente y abre un panel con la propuesta. Desde ahí puedes sustituir el borrador, deshacerlo, mejorarlo de nuevo, copiarlo o cancelar. Grabación real: **48 → 100**.
+Desde 60 columnas la banda nombra además el criterio que más resta. `/coach` (o el botón de la banda) reescribe el borrador con el modelo que elijas (Haiku por defecto) usando la conversación reciente y abre un panel con la propuesta. Desde ahí puedes sustituir el borrador, deshacerlo, mejorarlo de nuevo, copiarlo o cancelar; cuando falta un dato que solo tú sabes (el archivo, el error literal), el panel te pide solo ese y mejora otra vez con tu respuesta. `/coach stats` enseña la media de esta semana frente a la anterior y el criterio que más te falta. Grabación real: **48 → 100**.
 
 <p align="center"><img src="assets/coach-es.gif" alt="El comando coach abre el panel con la propuesta de 48 a 100 y sustituye el borrador" width="100%"></p>
 
@@ -97,13 +97,14 @@ Responde `y` para añadir el marketplace y elige el ámbito de usuario: así fun
 
 ## Ajustes
 
-Tres opciones en `/plugin`, Prompt Coach, configurar:
+Cuatro opciones en `/plugin`, Prompt Coach, configurar:
 
 | Opción | Valores | Por defecto |
 |---|---|---|
-| `model` | `haiku`, `sonnet`, `opus`: el modelo que reescribe | `haiku` |
+| `model` | `haiku`, `sonnet`, `opus`, o `session` para el modelo de la propia sesión: el modelo que reescribe | `haiku` |
 | `language` | `auto`, `en`, `es`, `fr`, `de`, `pt`, `it`: idioma de la interfaz; `auto` sigue al borrador | `auto` |
 | `verbosity` | `concise`, `balanced`, `detailed`: longitud de la propuesta | `balanced` |
+| `projectRules` | leer `CLAUDE.md` y `AGENTS.md` del proyecto (hasta 4000 caracteres) para que las restricciones salgan de las reglas del repo | activada |
 
 La rúbrica entiende borradores en los seis idiomas, y la propuesta se escribe siempre en el idioma del borrador. La verbosidad, medida con Haiku sobre los 16 borradores:
 
@@ -145,8 +146,11 @@ claude plugin validate .
 | Fichero | Qué hay |
 |---|---|
 | `core/rubric.ts` | rúbrica, prompts del modelo y motor local, sin dependencias de Claude Code |
-| `hooks/register.tsx` | hooks, llamadas al modelo, banda y panel |
+| `hooks/register.tsx` | conecta los eventos del motor |
+| `hooks/state.ts`, `hooks/actions.ts`, `hooks/views.tsx` | estado y ajustes, acciones (mejorar, aplicar, cancelar, historial), banda y panel |
 | `hooks/i18n.ts` | textos de la interfaz en seis idiomas |
+| `core/rubric.fixtures.ts` | casos de regresión de la rúbrica en seis idiomas |
+| `cli/`, `adapters/codex/` | la CLI y el hook y la skill de Codex |
 | `hooks/coach.test.tsx` | tests con el kit `claude-code/testing` |
 | `bench/` | benchmark de modelos con juez ciego |
 | `types/index.d.ts` | contrato del estado del mod |

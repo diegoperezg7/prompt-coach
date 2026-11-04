@@ -2,6 +2,38 @@
 
 All notable changes to Prompt Coach. Versions follow `.claude-plugin/plugin.json`.
 
+## 1.4.0 (2026-11-04)
+
+Applies the prioritised list from the second review round, one commit per item. 37/37 tests pass, the type-check is clean and CI runs validate, tests and the CLI on every push. Opus's benchmark average stays at **94.8**: re-scoring the 80 stored proposals with the new rubric changes no average (`bench/summary.json`).
+
+### Fixed
+
+- **The acceptance header alone scored up to 20.** "Acceptance criteria: yes" plus filler now scores 0; the section counts when what follows it is checkable (a test, an observable result, an expected behaviour or a figure), and "done when…" still counts on its own.
+- **On `auto` the interface switched language while typing** ("fix" alone read as Spanish). It now changes only on a sure detection and otherwise keeps the last sure language.
+- **The empty pane spoke Spanish to everyone on `auto`.** It now uses the last language used, remembered across sessions, and English the very first time.
+- **The goal criterion only measured length**: eight words of small talk scored like a real short task. It now needs a task verb (in six languages) and an object (six words or a path), or a concrete question.
+- **The local engine fell back to English** for French, German, Portuguese and Italian drafts when the model did not answer. It now writes in all six languages, with its gaps marked in each one.
+
+### Added
+
+- **Live hint**: from 60 columns the band names the criterion that costs the most.
+- **Ask only for the missing fact**: when context or detail is missing, the pane asks for it (which file, what happens now); the answer joins the draft, counts as verified, and the rewrite runs again.
+- **`model: session`** uses the session's own model.
+- **`projectRules`** (on by default): the project's `CLAUDE.md` and `AGENTS.md`, up to 4000 characters, go into the rewrite so constraints come from the repo's own rules; paths in them count as known.
+- **Score history and `/coach stats`**: the score of every prompt actually sent is kept for 90 days; `/coach stats` compares this week with the previous one and names the most missed criterion. Held prompts are not counted.
+- **Codex**: a `prompt-coach` CLI on the shared rubric (`score`, `hook codex`), a `UserPromptSubmit` hook that holds weak prompts (`raw:` sends one as it is), a `$coach` skill, and an installer that merges into an existing `hooks.json` without touching other hooks.
+- **CI**: GitHub Actions runs `claude plugin validate`, `claude plugin test` and the CLI on every push; the version and test badges update themselves.
+- **Regression cases for the rubric** (`core/rubric.fixtures.ts`): 26 drafts in six languages, including every false positive fixed so far.
+- **`bench/summary.json`**: the scores behind the README's benchmark tables, re-scored with the current rubric.
+
+### Changed
+
+- `hooks/register.tsx` is split into `state.ts`, `actions.ts` and `views.tsx`; `register.tsx` only wires events.
+
+### Not done
+
+- Checking in the real VS Code extension whether the composer keeps the text after a held Enter: skipped in this round.
+
 ## 1.3.1 (2026-11-04)
 
 A review round: ten fixes found by an independent code review and by edge-case probes. 24/24 tests pass.

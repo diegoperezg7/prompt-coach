@@ -29,7 +29,7 @@ A band above the composer scores every keystroke: amber below 60, green from the
 
 ## Improve it with one command
 
-`/coach` (or the band's button) rewrites the draft with the model you chose (Haiku by default), using the recent conversation, and opens a pane with the proposal. From there you can replace the draft, undo, improve again, copy or cancel. Real recording: **48 → 100**.
+From 60 columns the band also names the criterion that costs the most. `/coach` (or the band's button) rewrites the draft with the model you chose (Haiku by default), using the recent conversation, and opens a pane with the proposal. From there you can replace the draft, undo, improve again, copy or cancel; when a fact only you know is missing (the file, the exact error), the pane asks for just that and improves again with your answer. `/coach stats` shows this week's average against the previous one and the criterion you miss most. Real recording: **48 → 100**.
 
 <p align="center"><img src="assets/coach.gif" alt="The coach command opens the pane with a 48 to 100 proposal and replaces the draft" width="100%"></p>
 
@@ -97,13 +97,14 @@ Answer `y` to add the marketplace and pick the user scope: it then works in the 
 
 ## Settings
 
-Three options in `/plugin`, Prompt Coach, configure:
+Four options in `/plugin`, Prompt Coach, configure:
 
 | Option | Values | Default |
 |---|---|---|
-| `model` | `haiku`, `sonnet`, `opus`: the model that rewrites | `haiku` |
+| `model` | `haiku`, `sonnet`, `opus`, or `session` for the session's own model: the model that rewrites | `haiku` |
 | `language` | `auto`, `en`, `es`, `fr`, `de`, `pt`, `it`: interface language; `auto` follows the draft | `auto` |
 | `verbosity` | `concise`, `balanced`, `detailed`: length of the proposal | `balanced` |
+| `projectRules` | read the project's `CLAUDE.md` and `AGENTS.md` (up to 4000 characters) so constraints come from the repo's own rules | on |
 
 The rubric reads drafts in all six languages, and the proposal is always written in the draft's language. Verbosity, measured with Haiku over the 16 drafts:
 
@@ -145,8 +146,11 @@ claude plugin validate .
 | File | What it holds |
 |---|---|
 | `core/rubric.ts` | rubric, model prompts and local engine, with no Claude Code dependency |
-| `hooks/register.tsx` | hooks, model calls, band and pane |
+| `hooks/register.tsx` | wires the engine's events |
+| `hooks/state.ts`, `hooks/actions.ts`, `hooks/views.tsx` | state and settings, actions (rewrite, apply, cancel, history), band and pane |
 | `hooks/i18n.ts` | interface texts in six languages |
+| `core/rubric.fixtures.ts` | regression cases for the rubric in six languages |
+| `cli/`, `adapters/codex/` | the CLI and the Codex hook and skill |
 | `hooks/coach.test.tsx` | tests with the `claude-code/testing` kit |
 | `bench/` | model benchmark with a blind judge |
 | `types/index.d.ts` | the mod's state contract |
