@@ -1,48 +1,48 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="880" height="380" viewBox="0 0 880 380" role="img" aria-labelledby="t d">
-  <title id="t">Rúbrica de 100 puntos</title>
-  <desc id="d">Objetivo 20, contexto 15, detalle 15, criterio de aceptación 20, restricciones 15, formato 10, claridad 5.</desc>
+  <title id="t">100-point rubric</title>
+  <desc id="d">Goal 20, context 15, detail 15, acceptance criteria 20, constraints 15, format 10, clarity 5.</desc>
   <style>
     :root { --bg:#ffffff; --fg:#0b0b0f; --muted:#5b5b6b; --line:#e4e2ee; --track:#f1eff6; --accent:#7c3aed; }
     @media (prefers-color-scheme: dark) { :root { --bg:#000000; --fg:#f4f3f8; --muted:#a3a1b3; --line:#2a2833; --track:#16141d; --accent:#a78bfa; } }
     text { font-family: Inter, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
   </style>
   <rect x="0.5" y="0.5" width="879" height="379" rx="16" fill="var(--bg)" stroke="var(--line)"/>
-  <text x="32" y="46" font-size="21" font-weight="700" fill="var(--fg)">Rúbrica · 100 puntos</text>
-  <text x="32" y="72" font-size="14" fill="var(--muted)">El panel dice qué criterio falta. Una ruta que no está en el borrador ni en la conversación no puntúa.</text>
+  <text x="32" y="46" font-size="21" font-weight="700" fill="var(--fg)">Rubric · 100 points</text>
+  <text x="32" y="72" font-size="14" fill="var(--muted)">The pane says which criterion is missing. A path that is not in the draft or the conversation scores nothing.</text>
   <g font-size="15">
     <!-- 20 puntos = 560 px -->
     <g transform="translate(0 100)">
-      <text x="32" y="17" fill="var(--fg)" font-weight="600">Objetivo</text>
+      <text x="32" y="17" fill="var(--fg)" font-weight="600">Goal</text>
       <rect x="240" y="2" width="560" height="20" rx="6" fill="var(--track)"/><rect x="240" y="2" width="560" height="20" rx="6" fill="var(--accent)"/>
       <text x="846" y="17" text-anchor="end" fill="var(--fg)" font-weight="700">20</text>
     </g>
     <g transform="translate(0 138)">
-      <text x="32" y="17" fill="var(--fg)" font-weight="600">Criterio de aceptación</text>
+      <text x="32" y="17" fill="var(--fg)" font-weight="600">Acceptance criteria</text>
       <rect x="240" y="2" width="560" height="20" rx="6" fill="var(--track)"/><rect x="240" y="2" width="560" height="20" rx="6" fill="var(--accent)"/>
       <text x="846" y="17" text-anchor="end" fill="var(--fg)" font-weight="700">20</text>
     </g>
     <g transform="translate(0 176)">
-      <text x="32" y="17" fill="var(--fg)" font-weight="600">Contexto verificado</text>
+      <text x="32" y="17" fill="var(--fg)" font-weight="600">Verified context</text>
       <rect x="240" y="2" width="560" height="20" rx="6" fill="var(--track)"/><rect x="240" y="2" width="420" height="20" rx="6" fill="var(--accent)" opacity="0.85"/>
       <text x="846" y="17" text-anchor="end" fill="var(--fg)" font-weight="700">15</text>
     </g>
     <g transform="translate(0 214)">
-      <text x="32" y="17" fill="var(--fg)" font-weight="600">Detalle concreto</text>
+      <text x="32" y="17" fill="var(--fg)" font-weight="600">Concrete detail</text>
       <rect x="240" y="2" width="560" height="20" rx="6" fill="var(--track)"/><rect x="240" y="2" width="420" height="20" rx="6" fill="var(--accent)" opacity="0.85"/>
       <text x="846" y="17" text-anchor="end" fill="var(--fg)" font-weight="700">15</text>
     </g>
     <g transform="translate(0 252)">
-      <text x="32" y="17" fill="var(--fg)" font-weight="600">Restricciones</text>
+      <text x="32" y="17" fill="var(--fg)" font-weight="600">Constraints</text>
       <rect x="240" y="2" width="560" height="20" rx="6" fill="var(--track)"/><rect x="240" y="2" width="420" height="20" rx="6" fill="var(--accent)" opacity="0.85"/>
       <text x="846" y="17" text-anchor="end" fill="var(--fg)" font-weight="700">15</text>
     </g>
     <g transform="translate(0 290)">
-      <text x="32" y="17" fill="var(--fg)" font-weight="600">Formato de respuesta</text>
+      <text x="32" y="17" fill="var(--fg)" font-weight="600">Response format</text>
       <rect x="240" y="2" width="560" height="20" rx="6" fill="var(--track)"/><rect x="240" y="2" width="280" height="20" rx="6" fill="var(--accent)" opacity="0.7"/>
       <text x="846" y="17" text-anchor="end" fill="var(--fg)" font-weight="700">10</text>
     </g>
     <g transform="translate(0 328)">
-      <text x="32" y="17" fill="var(--fg)" font-weight="600">Claridad</text>
+      <text x="32" y="17" fill="var(--fg)" font-weight="600">Clarity</text>
       <rect x="240" y="2" width="560" height="20" rx="6" fill="var(--track)"/><rect x="240" y="2" width="140" height="20" rx="6" fill="var(--accent)" opacity="0.55"/>
       <text x="846" y="17" text-anchor="end" fill="var(--fg)" font-weight="700">5</text>
     </g>

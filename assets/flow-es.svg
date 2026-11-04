@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="300" viewBox="0 0 880 300" role="img" aria-labelledby="t d">
+  <title id="t">Cómo funciona</title>
+  <desc id="d">El borrador se puntúa en vivo con la rúbrica local. Con /coach, Haiku lo reescribe; si le falta algo que pueda añadir sin inventar, hace una segunda pasada. El panel enseña la nota antes y después y lo que falta para 100, y tú eliges. Sin modelo, se usan reglas locales.</desc>
+  <style>
+    :root { --bg:#ffffff; --fg:#0b0b0f; --muted:#5b5b6b; --line:#e4e2ee; --surface:#ffffff; --accent:#7c3aed; --accent-fg:#ffffff; --edge:#9a98a8; }
+    @media (prefers-color-scheme: dark) { :root { --bg:#000000; --fg:#f4f3f8; --muted:#a3a1b3; --line:#2a2833; --surface:#0b0a10; --accent:#8b5cf6; --accent-fg:#ffffff; --edge:#6d6b7b; } }
+    text { font-family: Inter, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+    .box { fill: var(--surface); stroke: var(--line); }
+    .hot { fill: var(--accent); }
+    .t { font-size: 14px; font-weight: 700; fill: var(--fg); }
+    .s { font-size: 12px; fill: var(--muted); }
+    .th { font-size: 14px; font-weight: 700; fill: var(--accent-fg); }
+    .sh { font-size: 12px; fill: var(--accent-fg); opacity: .85; }
+    .e { stroke: var(--edge); stroke-width: 1.6; fill: none; }
+    .lbl { font-size: 11.5px; fill: var(--muted); }
+  </style>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="var(--edge)"/>
+    </marker>
+  </defs>
+  <rect x="0.5" y="0.5" width="879" height="299" rx="16" fill="var(--bg)" stroke="var(--line)"/>
+
+  <!-- fila 1 -->
+  <rect class="box" x="28" y="40" width="150" height="64" rx="12"/>
+  <text class="t" x="103" y="68" text-anchor="middle">Borrador</text>
+  <text class="s" x="103" y="88" text-anchor="middle">lo que escribes</text>
+
+  <rect class="box" x="246" y="40" width="170" height="64" rx="12"/>
+  <text class="t" x="331" y="68" text-anchor="middle">Rúbrica local</text>
+  <text class="s" x="331" y="88" text-anchor="middle">0-100 en cada tecla</text>
+
+  <rect class="hot" x="484" y="40" width="170" height="64" rx="12"/>
+  <text class="th" x="569" y="68" text-anchor="middle">Haiku reescribe</text>
+  <text class="sh" x="569" y="88" text-anchor="middle">con la rúbrica</text>
+
+  <rect class="box" x="704" y="34" width="148" height="76" rx="12"/>
+  <text class="t" x="778" y="62" text-anchor="middle">¿Le falta algo</text>
+  <text class="s" x="778" y="80" text-anchor="middle">que pueda añadir</text>
+  <text class="s" x="778" y="96" text-anchor="middle">sin inventar?</text>
+
+  <path class="e" d="M178 72 H244" marker-end="url(#a)"/>
+  <path class="e" d="M331 104 C331 132 103 132 103 106" marker-end="url(#a)"/>
+  <text class="lbl" x="217" y="146" text-anchor="middle">banda en vivo</text>
+  <path class="e" d="M416 72 H482" marker-end="url(#a)"/>
+  <text class="lbl" x="449" y="62" text-anchor="middle">/coach</text>
+  <path class="e" d="M654 72 H702" marker-end="url(#a)"/>
+
+  <!-- fila 2 -->
+  <rect class="hot" x="704" y="186" width="148" height="64" rx="12"/>
+  <text class="th" x="778" y="214" text-anchor="middle">Segunda pasada</text>
+  <text class="sh" x="778" y="234" text-anchor="middle">dirigida</text>
+
+  <rect class="box" x="436" y="180" width="218" height="76" rx="12"/>
+  <text class="t" x="545" y="208" text-anchor="middle">Panel</text>
+  <text class="s" x="545" y="226" text-anchor="middle">nota antes → después</text>
+  <text class="s" x="545" y="242" text-anchor="middle">y qué falta para 100</text>
+
+  <rect class="box" x="186" y="186" width="200" height="64" rx="12"/>
+  <text class="t" x="286" y="214" text-anchor="middle">Tú eliges</text>
+  <text class="s" x="286" y="234" text-anchor="middle">sustituir · enviar · deshacer</text>
+
+  <path class="e" d="M778 110 V184" marker-end="url(#a)"/>
+  <text class="lbl" x="788" y="152">sí</text>
+  <path class="e" d="M704 90 C680 120 640 150 600 178" marker-end="url(#a)"/>
+  <text class="lbl" x="664" y="136">no</text>
+  <path class="e" d="M704 218 H656" marker-end="url(#a)"/>
+  <path class="e" d="M436 218 H388" marker-end="url(#a)"/>
+
+  <path class="e" d="M500 104 C470 150 470 160 480 178" stroke-dasharray="4 4" marker-end="url(#a)"/>
+  <text class="lbl" x="462" y="150" text-anchor="end">sin modelo: reglas locales</text>
+  <text class="s" x="28" y="282">Nunca envía nada sin que elijas.</text>
+</svg>

@@ -1,119 +1,134 @@
+<p align="right"><b>English</b> · <a href="README.es.md">Español</a></p>
+
 <p align="center">
-  <img src="assets/banner.svg" alt="Prompt Coach: puntúa tu prompt mientras escribes y lo reescribe antes de enviarlo" width="100%">
+  <img src="assets/banner.svg" alt="Prompt Coach: scores your prompt as you type and rewrites it before you send it" width="100%">
 </p>
 
 <p align="center">
-  <img alt="Versión" src="https://img.shields.io/badge/versi%C3%B3n-1.1.3-7C3AED?style=flat-square">
+  <img alt="Version" src="https://img.shields.io/badge/version-1.2.1-7C3AED?style=flat-square">
   <img alt="Claude Code" src="https://img.shields.io/badge/Claude%20Code-mod-7C3AED?style=flat-square">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-13%20passing-15803d?style=flat-square">
-  <img alt="Modelo" src="https://img.shields.io/badge/modelo-Haiku-5b5b6b?style=flat-square">
-  <img alt="Licencia" src="https://img.shields.io/badge/licencia-MIT-5b5b6b?style=flat-square">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-16%20passing-15803d?style=flat-square">
+  <img alt="Model" src="https://img.shields.io/badge/model-Haiku-5b5b6b?style=flat-square">
+  <img alt="Languages" src="https://img.shields.io/badge/UI-EN%20%C2%B7%20ES-5b5b6b?style=flat-square">
+  <img alt="License" src="https://img.shields.io/badge/license-MIT-5b5b6b?style=flat-square">
 </p>
 
 <p align="center">
-  <b>Mod de Claude Code</b> que puntúa el borrador del prompt contra una rúbrica real y lo reescribe con Haiku antes de enviarlo.<br>
-  Nunca envía nada por su cuenta: siempre eliges tú.<br>
-  <sub><i>A Claude Code mod that scores your prompt draft as you type and rewrites it before you send it.</i></sub>
+  A <b>Claude Code mod</b> that scores your prompt draft against a real rubric and rewrites it with Haiku before you send it.<br>
+  It never sends anything on its own: you always choose.
 </p>
 
 ---
 
-## La nota, mientras escribes
+## Your score, as you type
 
-Una banda sobre el compositor puntúa cada tecla: ámbar por debajo de 60, verde a partir de ahí. Aquí pasa de **5** a **85** al añadir ruta, comportamiento esperado, un test y una restricción.
+A band above the composer scores every keystroke: amber below 60, green from there on. Here it climbs from **5** to **75** as the draft gains a file path, the expected behaviour, a test and a constraint.
 
-<p align="center"><img src="assets/live.gif" alt="La puntuación sube de 5 a 85 mientras se escribe el prompt" width="100%"></p>
+<p align="center"><img src="assets/live.gif" alt="The score climbs from 5 to 75 while the prompt is typed" width="100%"></p>
 
-## Mejorar con un comando
+## Improve it with one command
 
-`/coach` (o el botón de la banda) reescribe el borrador con Haiku usando la conversación reciente y abre un panel con la propuesta. Desde ahí puedes sustituir el borrador, deshacerlo, mejorarlo de nuevo, copiarlo o cancelar. Grabación real: **48 → 100**.
+`/coach` (or the band's button) rewrites the draft with Haiku, using the recent conversation, and opens a pane with the proposal. From there you can replace the draft, undo, improve again, copy or cancel. Real recording: **48 → 100**.
 
-<p align="center"><img src="assets/coach.gif" alt="El comando coach abre el panel con la propuesta de 48 a 100 y sustituye el borrador" width="100%"></p>
+<p align="center"><img src="assets/coach.gif" alt="The coach command opens the pane with a 48 to 100 proposal and replaces the draft" width="100%"></p>
 
-## Cómo funciona
+## How it works
 
-<p align="center"><img src="assets/flow.svg" alt="Flujo: borrador, rúbrica en vivo, Haiku reescribe, segunda pasada si hace falta, panel y tú eliges" width="88%"></p>
+<p align="center"><img src="assets/flow.svg" alt="Flow: draft, live rubric, Haiku rewrites, a second pass when needed, pane, you choose" width="88%"></p>
 
-## Una nota honesta
+## An honest score
 
-<p align="center"><img src="assets/rubric.svg" alt="Rúbrica de 100 puntos: objetivo 20, aceptación 20, contexto 15, detalle 15, restricciones 15, formato 10, claridad 5" width="88%"></p>
+<p align="center"><img src="assets/rubric.svg" alt="100-point rubric: goal 20, acceptance 20, context 15, detail 15, constraints 15, format 10, clarity 5" width="88%"></p>
 
-| Criterio | Puntos | Cuenta si |
+| Criterion | Points | Counts when |
 |---|---|---|
-| Objetivo | 20 | hay qué conseguir, con verbo y objeto |
-| Contexto | 15 | hay ruta, archivo, `símbolo` o @mención **que aparece en el borrador o la conversación** |
-| Detalle | 15 | dos datos concretos: actual y esperado, error, ejemplo, cifra, adjunto |
-| Criterio de aceptación | 20 | dice cuándo está hecho (12 si solo pide verificar) |
-| Restricciones | 15 | dos límites: qué no tocar, alcance |
-| Formato de respuesta | 10 | dice qué devolver |
-| Claridad | 5 | sin «esto», «lo de», «algo» ni huecos `[...]` |
+| Goal | 20 | there is something to achieve, with a verb and an object |
+| Context | 15 | there is a path, file, `symbol` or @mention **that appears in the draft or the conversation** |
+| Detail | 15 | two concrete facts: current and expected behaviour, error, example, figure, attachment |
+| Acceptance criteria | 20 | it says when it is done (12 if it only asks to verify) |
+| Constraints | 15 | two limits: what not to touch, scope |
+| Response format | 10 | it says what to return |
+| Clarity | 5 | no "this thing", "stuff" or `[...]` gaps |
 
-- **No se infla.** Una ruta que el modelo se inventa no puntúa, y el prompt de reescritura le prohíbe afirmar datos del proyecto que no consten.
-- **Un 100 se gana.** Solo llega cuando el borrador o la conversación traen la ubicación y los datos. Sin ellos la propuesta se queda en 86-93, pide al agente que lo averigüe y el panel dice qué falta: `Falta para 100: contexto 8/15`.
+- **No inflation.** A path the model invents scores nothing, and the rewrite prompt forbids stating project facts that are not given.
+- **A 100 is earned.** It only comes when the draft or the conversation brings the location and the facts. Without them the proposal stays at 86-93, tells the agent to find out, and the pane says what is missing: `Missing for 100: context 8/15`.
 
-## Se adapta a cualquier terminal
+## Fits any terminal
 
 <table>
   <tr>
-    <td width="44%"><img src="assets/narrow.gif" alt="En un terminal estrecho la banda deja la nota y el botón, y el panel se coloca encima del prompt" width="100%"></td>
+    <td width="44%"><img src="assets/narrow.gif" alt="In a narrow terminal the band keeps the score and the button, and the pane sits above the prompt" width="100%"></td>
     <td>
       <ul>
-        <li><b>Estrecho</b> (menos de 40 columnas): la banda deja solo la nota y el botón.</li>
-        <li><b>Bajo</b>: los botones suben encima del editor, que mide lo que queda libre (3 a 14 filas), y lo que falta para 100 pasa a formato corto.</li>
-        <li><b>Ancho</b>: el panel se acopla al lado del transcript.</li>
-        <li><b>Sin sitio para el panel</b>: <code>/coach</code> devuelve la propuesta en el propio transcript.</li>
-        <li>Ghostty, iTerm, Terminal.app y el terminal integrado de VS Code: es Claude Code quien pinta la interfaz, así que el mod funciona igual en todos.</li>
+        <li><b>Narrow</b> (under 40 columns): the band keeps only the score and the button.</li>
+        <li><b>Short</b>: the buttons move above the editor, which takes the rows left over (3 to 14), and what is missing for 100 turns compact.</li>
+        <li><b>Wide</b>: the pane docks beside the transcript.</li>
+        <li><b>No room for the pane</b>: <code>/coach</code> returns the proposal in the transcript itself.</li>
+        <li>Ghostty, iTerm, Terminal.app and the VS Code integrated terminal: Claude Code draws the interface, so the mod behaves the same in all of them.</li>
       </ul>
     </td>
   </tr>
 </table>
 
-## Haiku o Sonnet
+## Haiku or Sonnet
 
-<p align="center"><img src="assets/benchmark.svg" alt="Haiku cuesta 0,0007 dólares por mejora frente a 0,0114 de Sonnet, con nota y utilidad casi iguales" width="88%"></p>
+<p align="center"><img src="assets/benchmark.svg" alt="Haiku costs $0.0007 per rewrite against $0.0114 for Sonnet, with nearly the same score and usefulness" width="88%"></p>
 
-12 borradores reales (`bench/cases.mts`), el mismo flujo que el mod y un juez Opus ciego que puntúa fidelidad, datos inventados y utilidad:
+12 real drafts (`bench/cases.mts`), the same flow as the mod and a blind Opus judge scoring fidelity, invented facts and usefulness:
 
-| Modelo | Nota media | A 100 | Inventados | Utilidad | Coste por mejora | Latencia |
+| Model | Avg score | At 100 | Invented | Usefulness | Cost per rewrite | Latency |
 |---|---|---|---|---|---|---|
-| **Haiku** | 93,5 | 5/12 | 3 | 7,8/10 | **0,0007 $** | **5,2 s** |
-| Sonnet | 95,3 | 5/12 | 1 | 8,0/10 | 0,0114 $ | 6,0 s |
+| **Haiku** | 93.5 | 5/12 | 3 | 7.8/10 | **$0.0007** | **5.2 s** |
+| Sonnet | 95.3 | 5/12 | 1 | 8.0/10 | $0.0114 | 6.0 s |
 
-Haiku cuesta 16 veces menos con casi la misma calidad, y por eso es el modelo por defecto. Se puede repetir con `node --experimental-strip-types bench/run.mts haiku,sonnet opus`.
+Haiku is 16x cheaper with nearly the same quality, so it is the default. Rerun it with `node --experimental-strip-types bench/run.mts haiku,sonnet opus`.
 
-## Instalar
+## Install
 
-Desde el prompt de Claude Code:
+From the Claude Code prompt:
 
 ```
 /plugin install prompt-coach --marketplace diegoperezg7/prompt-coach
 ```
 
-Responde `y` para añadir el marketplace y elige el ámbito de usuario: así funciona en el terminal y en la extensión de VS Code, que comparten los plugins del usuario. Desde un shell: `claude plugin install prompt-coach --marketplace diegoperezg7/prompt-coach`.
+Answer `y` to add the marketplace and pick the user scope: it then works in the terminal and in the VS Code extension, which share user plugins. From a shell: `claude plugin install prompt-coach --marketplace diegoperezg7/prompt-coach`.
 
-## Por superficie
+## Language
 
-| Superficie | Puntuación en vivo | Botón | Retención en Enter |
+English and Spanish interface. The plugin's `language` option (`/plugin`, Prompt Coach, configure) takes:
+
+| Value | Interface |
+|---|---|
+| `auto` (default) | follows the language of the draft |
+| `en` | always English |
+| `es` | always Spanish |
+
+The proposal is always written in the draft's language, the one you work in.
+
+## Surfaces
+
+| Surface | Live score | Button | Hold on Enter |
 |---|---|---|---|
-| Terminal y app de escritorio | a cada tecla | banda (`m`) y `/coach` | no |
-| Extensión de VS Code | sondeo del compositor cada segundo (la extensión no envía las teclas) | banda y `/coach` | sí: un prompt flojo de trabajo se retiene y abre el panel; los sólidos, las preguntas, los comandos y los mensajes con adjuntos pasan |
+| Terminal and desktop app | every keystroke | band (`m`) and `/coach` | no |
+| VS Code extension | polls the composer every second (the extension does not send keystrokes) | band and `/coach` | yes: a weak work prompt is held and opens the pane; solid prompts, questions, commands and messages with attachments go through |
 
-## Desarrollo
+## Development
 
 ```
-claude --plugin-dir .        # cargar sin instalar
-claude plugin test .         # 13 tests: terminal, escritorio y VS Code, varios anchos y altos
+claude --plugin-dir .        # load without installing
+claude plugin test .         # 16 tests: terminal, desktop and VS Code, several widths and heights, both languages
 claude plugin validate .
 ```
 
-| Fichero | Qué hay |
+| File | What it holds |
 |---|---|
-| `core/rubric.ts` | rúbrica, prompts del modelo y motor local, sin dependencias de Claude Code |
-| `hooks/register.tsx` | hooks, llamadas al modelo, banda y panel |
-| `hooks/coach.test.tsx` | tests con el kit `claude-code/testing` |
-| `bench/` | benchmark de modelos con juez ciego |
-| `types/index.d.ts` | contrato del estado del mod |
+| `core/rubric.ts` | rubric, model prompts and local engine, with no Claude Code dependency |
+| `hooks/register.tsx` | hooks, model calls, band and pane |
+| `hooks/coach.test.tsx` | tests with the `claude-code/testing` kit |
+| `bench/` | model benchmark with a blind judge |
+| `types/index.d.ts` | the mod's state contract |
+| `assets/demo.mp4` | 35 s demo video, ready to share |
 
-## Licencia
+## License
 
 MIT

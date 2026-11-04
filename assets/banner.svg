@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="340" viewBox="0 0 1200 340" role="img" aria-labelledby="t d">
   <title id="t">Prompt Coach</title>
-  <desc id="d">Puntúa el borrador del prompt mientras escribes y lo reescribe antes de enviarlo: de 5/100 a 100/100.</desc>
+  <desc id="d">Scores your prompt draft as you type and rewrites it before you send it: from 5/100 to 100/100.</desc>
   <style>
     :root { --bg:#ffffff; --fg:#0b0b0f; --muted:#5b5b6b; --line:#e4e2ee; --surface:#ffffff; --accent:#7c3aed; --accent-soft:#f3edff; --warn:#b45309; --warn-soft:#fff4e5; --ok:#15803d; --ok-soft:#e9f8ee; }
     @media (prefers-color-scheme: dark) {
@@ -13,8 +13,8 @@
   <rect x="0" y="0" width="8" height="340" rx="4" fill="var(--accent)"/>
 
   <text x="64" y="118" font-size="62" font-weight="800" fill="var(--fg)" letter-spacing="-1.5">Prompt Coach</text>
-  <text x="66" y="164" font-size="23" fill="var(--muted)">Puntúa tu prompt mientras escribes y lo reescribe</text>
-  <text x="66" y="194" font-size="23" fill="var(--muted)">antes de enviarlo. Nunca envía nada sin que elijas.</text>
+  <text x="66" y="164" font-size="23" fill="var(--muted)">Scores your prompt as you type and rewrites it</text>
+  <text x="66" y="194" font-size="23" fill="var(--muted)">before you send it. Nothing is sent until you choose.</text>
   <g font-size="15" font-weight="600">
     <rect x="66" y="232" width="128" height="34" rx="17" fill="var(--accent-soft)"/>
     <text x="130" y="254" text-anchor="middle" fill="var(--accent)">Claude Code</text>
@@ -22,27 +22,27 @@
     <text x="256" y="254" text-anchor="middle" fill="var(--accent)">Terminal</text>
     <rect x="318" y="232" width="98" height="34" rx="17" fill="var(--accent-soft)"/>
     <text x="367" y="254" text-anchor="middle" fill="var(--accent)">VS Code</text>
-    <rect x="426" y="232" width="126" height="34" rx="17" fill="var(--accent-soft)"/>
-    <text x="489" y="254" text-anchor="middle" fill="var(--accent)">Haiku · 0,07 ¢</text>
+    <rect x="426" y="232" width="146" height="34" rx="17" fill="var(--accent-soft)"/>
+    <text x="499" y="254" text-anchor="middle" fill="var(--accent)">Haiku · $0.0007</text>
   </g>
 
   <g transform="translate(680 58)">
     <rect x="0.5" y="0.5" width="459" height="223" rx="14" fill="var(--surface)" stroke="var(--line)"/>
-    <text x="24" y="40" class="mono" font-size="15" fill="var(--muted)">❯ arregla el login</text>
+    <text x="24" y="40" class="mono" font-size="15" fill="var(--muted)">❯ fix the login</text>
     <rect x="24" y="56" width="168" height="34" rx="8" fill="var(--warn-soft)"/>
-    <text x="108" y="78" text-anchor="middle" class="mono" font-size="15" font-weight="700" fill="var(--warn)">flojo 5/100</text>
+    <text x="108" y="78" text-anchor="middle" class="mono" font-size="15" font-weight="700" fill="var(--warn)">weak 5/100</text>
     <path d="M206 73 h46" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
     <path d="M244 66 l9 7 l-9 7" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
     <rect x="266" y="56" width="168" height="34" rx="8" fill="var(--ok-soft)"/>
-    <text x="350" y="78" text-anchor="middle" class="mono" font-size="15" font-weight="700" fill="var(--ok)">sólido 100/100</text>
+    <text x="350" y="78" text-anchor="middle" class="mono" font-size="15" font-weight="700" fill="var(--ok)">solid 100/100</text>
     <g class="mono" font-size="14" fill="var(--fg)">
-      <text x="24" y="124"><tspan fill="var(--ok)">✓</tspan> Objetivo        <tspan fill="var(--muted)">20</tspan></text>
-      <text x="24" y="148"><tspan fill="var(--ok)">✓</tspan> Contexto        <tspan fill="var(--muted)">15</tspan></text>
-      <text x="24" y="172"><tspan fill="var(--ok)">✓</tspan> Detalle         <tspan fill="var(--muted)">15</tspan></text>
-      <text x="24" y="196"><tspan fill="var(--ok)">✓</tspan> Aceptación      <tspan fill="var(--muted)">20</tspan></text>
-      <text x="240" y="124"><tspan fill="var(--ok)">✓</tspan> Restricciones <tspan fill="var(--muted)">15</tspan></text>
-      <text x="240" y="148"><tspan fill="var(--ok)">✓</tspan> Formato       <tspan fill="var(--muted)">10</tspan></text>
-      <text x="240" y="172"><tspan fill="var(--ok)">✓</tspan> Claridad       <tspan fill="var(--muted)">5</tspan></text>
+      <text x="24" y="124"><tspan fill="var(--ok)">✓</tspan> Goal        <tspan fill="var(--muted)">20</tspan></text>
+      <text x="24" y="148"><tspan fill="var(--ok)">✓</tspan> Context        <tspan fill="var(--muted)">15</tspan></text>
+      <text x="24" y="172"><tspan fill="var(--ok)">✓</tspan> Detail         <tspan fill="var(--muted)">15</tspan></text>
+      <text x="24" y="196"><tspan fill="var(--ok)">✓</tspan> Acceptance      <tspan fill="var(--muted)">20</tspan></text>
+      <text x="240" y="124"><tspan fill="var(--ok)">✓</tspan> Constraints <tspan fill="var(--muted)">15</tspan></text>
+      <text x="240" y="148"><tspan fill="var(--ok)">✓</tspan> Format       <tspan fill="var(--muted)">10</tspan></text>
+      <text x="240" y="172"><tspan fill="var(--ok)">✓</tspan> Clarity       <tspan fill="var(--muted)">5</tspan></text>
     </g>
   </g>
 </svg>
