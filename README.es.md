@@ -93,7 +93,11 @@ Opus escribe propuestas algo más útiles a 43 veces el coste de Haiku; lo elige
 
 ## Lo que cuesta cada mejora
 
-El panel enseña los tokens y el coste de cada mejora, por ejemplo `haiku · 2 llamadas · 3100 in · 1200 out · 0,0006 $ · 6,1 s`, y `/coach usage` lista los totales de hoy y de los últimos 7 días, por modelo, y las últimas llamadas una a una (se guardan 90 días). Los tokens salen tal cual de cada llamada; el coste se calcula a precio de lista de la API (`core/pricing.ts`), y la fórmula coincide hasta el último decimal con la cifra de Claude Code para Haiku 5.5 y Sonnet 5.5. `/cost` no incluye las llamadas del mod, así que este es el sitio para comprobarlas.
+El panel enseña lo que gastó cada mejora, por ejemplo `haiku · 2 llamadas · 3100 in · 1200 out · plan <0,1 % · 0,0006 $ API · 6,1 s`, y `/coach usage` enseña tu plan en este momento (`5 h 24,0 % (se reinicia 4/11 18:50) · 7 días 70,0 %`), los totales de hoy y de los últimos 7 días, por modelo, y las últimas llamadas una a una (se guardan 90 días).
+
+- **Tokens**: salen tal cual de cada llamada.
+- **Parte del plan**: lo que cada llamada movió las ventanas de tu plan (5 horas, 7 días), leídas antes y después. Es lo que cuenta con un plan de suscripción, y la misma mejora pesa distinto en cada plan. Claude Code lo da con un decimal, así que una mejora por debajo del 0,1 % sale como `<0,1 %`, no como 0. En una sesión real, tres mejoras con Opus no movieron la ventana de 5 horas ni un 0,1 %.
+- **Dólares**: son el equivalente a precio de lista de la API (`core/pricing.ts`), no un cargo: con un plan no se paga por llamada. La fórmula coincide hasta el último decimal con la cifra de Claude Code para Haiku 5.5 y Sonnet 5.5. `/cost` no incluye las llamadas del mod, así que este es el sitio para comprobarlas.
 
 ## Instalar
 

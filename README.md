@@ -93,7 +93,11 @@ Opus writes slightly more useful proposals at 43x the cost of Haiku; the choice 
 
 ## What each rewrite costs
 
-The pane shows the tokens and cost of every rewrite, for example `haiku · 2 calls · 3100 in · 1200 out · $0.0006 · 6.1 s`, and `/coach usage` lists today's and the last 7 days' totals, per model, and the last calls one by one (kept for 90 days). Tokens come straight from each call; cost is computed at API list price (`core/pricing.ts`), and the formula matches Claude Code's own figure for Haiku 5.5 and Sonnet 5.5 to the last digit. `/cost` does not include the mod's calls, so this is the place to check them.
+The pane shows what every rewrite used, for example `haiku · 2 calls · 3100 in · 1200 out · plan <0.1 % · $0.0006 API · 6.1 s`, and `/coach usage` shows your plan right now (`5 h 24.0 % (resets 4/11 18:50) · 7 days 70.0 %`), today's and the last 7 days' totals, per model, and the last calls one by one (kept for 90 days).
+
+- **Tokens** come straight from each call.
+- **Plan share** is what each call moved your plan's windows (5 hours, 7 days), read before and after it. That is what matters on a subscription plan, and the same rewrite weighs differently on each plan. Claude Code reports it with one decimal, so a rewrite below 0.1 % shows as `<0.1 %`, not as 0. In a real session, three Opus rewrites did not move the 5-hour window by 0.1 %.
+- **Dollars** are the API list-price equivalent (`core/pricing.ts`), not a charge: on a plan you are not billed per call. The formula matches Claude Code's own figure for Haiku 5.5 and Sonnet 5.5 to the last digit. `/cost` does not include the mod's calls, so this is the place to check them.
 
 ## Install
 

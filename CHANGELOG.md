@@ -2,6 +2,18 @@
 
 All notable changes to Prompt Coach. Versions follow `.claude-plugin/plugin.json`.
 
+## 1.6.0 (2026-11-04)
+
+### Added
+
+- **Plan share per call.** Before and after each model call the mod reads the plan's windows (`five_hour`, `seven_day`, or a gateway's spend limit) and records how many points each one moved. The pane and `/coach usage` show it (`plan 5 h +0.3 %`); a call below Claude Code's 0.1 % resolution reads `plan <0.1 %`, not 0. `/coach usage` also opens with the plan as it stands (`5 h 24.0 % (resets 4/11 18:50) · 7 days 70.0 %`).
+- Dollars are labelled as the API list-price equivalent (`$0.0006 API`): on a subscription plan nothing is charged per call.
+
+### Known limits
+
+- In a real session three Opus rewrites (about $0.05 API-equivalent) left the 5-hour window at the same 24.0 %, so each read `<0.1 %`. That session could not tell whether they were below the resolution or whether Claude Code refreshes the window only on the agent's own responses.
+- If the agent answers while a rewrite runs, its use lands in the same before/after reading.
+
 ## 1.5.1 (2026-11-04)
 
 ### Fixed
