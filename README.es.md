@@ -5,9 +5,9 @@
 </p>
 
 <p align="center">
-  <img alt="Versión" src="https://img.shields.io/badge/versi%C3%B3n-1.3.1-7C3AED?style=flat-square">
+  <img alt="Versión" src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fdiegoperezg7%2Fprompt-coach%2Fmain%2F.claude-plugin%2Fplugin.json&query=%24.version&label=versi%C3%B3n&color=7C3AED&style=flat-square">
   <img alt="Claude Code" src="https://img.shields.io/badge/Claude%20Code-mod-7C3AED?style=flat-square">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-24%20passing-15803d?style=flat-square">
+  <a href="https://github.com/diegoperezg7/prompt-coach/actions/workflows/test.yml"><img alt="Tests" src="https://github.com/diegoperezg7/prompt-coach/actions/workflows/test.yml/badge.svg"></a>
   <img alt="Modelos" src="https://img.shields.io/badge/modelos-Haiku%20%C2%B7%20Sonnet%20%C2%B7%20Opus-5b5b6b?style=flat-square">
   <img alt="Idiomas" src="https://img.shields.io/badge/idiomas-6-5b5b6b?style=flat-square">
   <img alt="Licencia" src="https://img.shields.io/badge/licencia-MIT-5b5b6b?style=flat-square">
@@ -126,7 +126,7 @@ Con menos texto caben menos restricciones y detalles, así que la nota baja un p
 
 ```
 claude --plugin-dir .        # cargar sin instalar
-claude plugin test .         # 24 tests: terminal, escritorio y VS Code, anchos y altos, idiomas, ajustes
+claude plugin test .         # tests: terminal, escritorio y VS Code, anchos y altos, idiomas, ajustes
 claude plugin validate .
 ```
 

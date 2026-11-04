@@ -5,9 +5,9 @@
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-1.3.1-7C3AED?style=flat-square">
+  <img alt="Version" src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fdiegoperezg7%2Fprompt-coach%2Fmain%2F.claude-plugin%2Fplugin.json&query=%24.version&label=version&color=7C3AED&style=flat-square">
   <img alt="Claude Code" src="https://img.shields.io/badge/Claude%20Code-mod-7C3AED?style=flat-square">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-24%20passing-15803d?style=flat-square">
+  <a href="https://github.com/diegoperezg7/prompt-coach/actions/workflows/test.yml"><img alt="Tests" src="https://github.com/diegoperezg7/prompt-coach/actions/workflows/test.yml/badge.svg"></a>
   <img alt="Models" src="https://img.shields.io/badge/models-Haiku%20%C2%B7%20Sonnet%20%C2%B7%20Opus-5b5b6b?style=flat-square">
   <img alt="Languages" src="https://img.shields.io/badge/languages-6-5b5b6b?style=flat-square">
   <img alt="License" src="https://img.shields.io/badge/license-MIT-5b5b6b?style=flat-square">
@@ -126,7 +126,7 @@ Shorter proposals leave less room for constraints and detail, so they score a li
 
 ```
 claude --plugin-dir .        # load without installing
-claude plugin test .         # 24 tests: terminal, desktop and VS Code, widths and heights, languages, settings
+claude plugin test .         # tests: terminal, desktop and VS Code, widths and heights, languages, settings
 claude plugin validate .
 ```
 
