@@ -32,20 +32,7 @@ Una banda sobre el compositor puntúa cada tecla: ámbar por debajo de 60, verde
 
 ## Cómo funciona
 
-```mermaid
-flowchart LR
-    A([Borrador]) --> B{{Rúbrica local<br/>0-100}}
-    B -->|banda en vivo| A
-    A -->|/coach o botón| C[Haiku reescribe<br/>con la rúbrica]
-    C --> D{¿Le falta algo<br/>que pueda añadir<br/>sin inventar?}
-    D -->|sí| E[Segunda pasada<br/>dirigida]
-    D -->|no| F
-    E --> F[Panel: nota antes → después<br/>y qué falta para 100]
-    F -->|tú eliges| G([Sustituir · Enviar · Deshacer · Cancelar])
-    C -.->|sin modelo| H[Reglas locales] -.-> F
-    style C fill:#7C3AED,color:#fff,stroke:#7C3AED
-    style E fill:#7C3AED,color:#fff,stroke:#7C3AED
-```
+<p align="center"><img src="assets/flow.svg" alt="Flujo: borrador, rúbrica en vivo, Haiku reescribe, segunda pasada si hace falta, panel y tú eliges" width="88%"></p>
 
 ## Una nota honesta
 
