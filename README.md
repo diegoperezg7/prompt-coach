@@ -83,7 +83,7 @@ A band above the composer scores every keystroke: amber below 60, green from the
 | Sonnet | 93.5 | 4/16 | 6 | 7.9/10 | 16/16 | $0.0111 | 5.4 s |
 | Opus | 94.8 | 5/16 | 4 | 8.0/10 | 16/16 | $0.0239 | 7.5 s |
 
-Opus writes slightly more useful proposals at 43x the cost of Haiku; the choice is yours with the `model` setting. Rerun it with `node --experimental-strip-types bench/run.mts haiku,sonnet,opus opus balanced`.
+Opus writes slightly more useful proposals at 43x the cost of Haiku; the choice is yours with the `model` setting. Rerun it with `node --experimental-strip-types bench/run.mts haiku,sonnet,opus opus balanced`; the scores behind these tables are in [`bench/summary.json`](bench/summary.json).
 
 ## Install
 

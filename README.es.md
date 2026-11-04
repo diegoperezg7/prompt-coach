@@ -83,7 +83,7 @@ Una banda sobre el compositor puntúa cada tecla: ámbar por debajo de 60, verde
 | Sonnet | 93,5 | 4/16 | 6 | 7,9/10 | 16/16 | 0,0111 $ | 5,4 s |
 | Opus | 94,8 | 5/16 | 4 | 8,0/10 | 16/16 | 0,0239 $ | 7,5 s |
 
-Opus escribe propuestas algo más útiles a 43 veces el coste de Haiku; lo eliges tú con la opción `model`. Se repite con `node --experimental-strip-types bench/run.mts haiku,sonnet,opus opus balanced`.
+Opus escribe propuestas algo más útiles a 43 veces el coste de Haiku; lo eliges tú con la opción `model`. Se repite con `node --experimental-strip-types bench/run.mts haiku,sonnet,opus opus balanced`; las notas que respaldan estas tablas están en [`bench/summary.json`](bench/summary.json).
 
 ## Instalar
 
