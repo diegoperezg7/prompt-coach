@@ -31,12 +31,16 @@ let lastLang: Lang | null = null
 const uiLang = (text: string): Lang => {
   if (uiSetting !== 'auto') return uiSetting
   const d = detectLang(text)
-  return d.sure ? d.lang : lastLang ?? d.lang
+  // Sin pistas y sin idioma recordado (la primera vez de todas, o el panel vacío), inglés.
+  return d.sure ? d.lang : lastLang ?? 'en'
 }
-// Fija el último idioma seguro; se llama desde eventos, nunca mientras se dibuja.
-function noteLang(text: string) {
+// Fija el último idioma seguro y lo recuerda entre sesiones; desde eventos, nunca mientras se dibuja.
+const LAST_LANG = 'lastLang'
+function noteLang($: EngineInterface, text: string) {
   const d = detectLang(text)
-  if (d.sure) lastLang = d.lang
+  if (!d.sure || d.lang === lastLang) return
+  lastLang = d.lang
+  void $.store.set(LAST_LANG, d.lang).catch(() => undefined)
 }
 const ui = (text: string) => UI[uiLang(text)]
 
@@ -72,6 +76,7 @@ type Improved = { text: string; score: number }
 async function improve($: EngineInterface, text: string): Promise<Improved> {
   const lang = langOf(text)
   const before = assess(text).score
+  noteLang($, text)
   edited = null
   stop?.abort()
   const controller = new AbortController()
@@ -194,7 +199,7 @@ async function pollComposer($: EngineInterface) {
   const box = await $.prompt.read().catch(() => null)
   if (!box || box.text === lastPolled) return
   lastPolled = box.text
-  noteLang(box.text)
+  noteLang($, box.text)
   await update($, draft, () => box.text)
 }
 function startPoll($: EngineInterface) {
@@ -239,7 +244,7 @@ async function dismiss($: EngineInterface, restore = false) {
 
 // Lo que hay en el compositor: teclear llega por prompt.edit, lo demás (historial, fill, clear) por prompt.change.
 async function onDraft($: EngineInterface, text: string, isOwnFill: boolean) {
-  noteLang(text)
+  noteLang($, text)
   await update($, draft, () => text)
   if (!isOwnFill && (await read($, proposal))) void dismiss($)
   if (hasBand) return
@@ -271,6 +276,8 @@ export const register: Register = (on, options) => {
   on('session.start', async ($, e, next) => {
     hasBand = e.surface === 'terminal' || e.surface === 'desktop'
     surface = e.surface
+    const remembered = await $.store.get(LAST_LANG).catch(() => undefined)
+    if ((LANGS as readonly unknown[]).includes(remembered)) lastLang = remembered as Lang
     await update($, proposal, p => (p && p.isBusy ? null : p))
     await $.command.register({
       name: 'coach',

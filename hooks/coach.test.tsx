@@ -478,3 +478,22 @@ test('on auto the interface keeps its language while the first words are ambiguo
   expect(await band.find({ type: 'Text', text: 'Prompt flojo' })).toBeUndefined()
   await band.unmount()
 })
+
+test('with nothing typed, the pane speaks the last language used, remembered across sessions; English the very first time', async ($, on) => {
+  const stored = new Map<string, unknown>()
+  engine(on, { isAnswered: true, text: FULL, usage: USAGE })
+  on('store.get', (_, e) => ({ value: stored.get(e.key) }))
+  on('store.set', (_, e) => { stored.set(e.key, e.value); return { value: undefined } })
+  await $.session.start({ cwd: '/tmp/demo-app', surface: 'terminal', isInteractive: true })
+  let ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  expect((await ui.find({ type: 'Text', text: /Prompt Coach/ }))?.text).toMatch(/type a draft/)
+  await ui.unmount()
+
+  await $.prompt.edit({ origin: { kind: 'composer' }, text: 'corrige la connexion du formulair', cursor: 33, start: 33, end: 33, inputText: 'e' })
+  expect(stored.get('lastLang')).toBe('fr')
+  await $.prompt.change({ text: '', cursor: 0, origin: { kind: 'clear' } })
+  await $.session.start({ cwd: '/tmp/demo-app', surface: 'terminal', isInteractive: true })
+  ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  expect((await ui.find({ type: 'Text', text: /Prompt Coach/ }))?.text).toMatch(/écrivez un brouillon/)
+  await ui.unmount()
+})
