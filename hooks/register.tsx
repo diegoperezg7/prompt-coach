@@ -53,6 +53,12 @@ const UI = {
   },
 } as const
 
+// Idioma de la interfaz: la opción `language` del plugin; en `auto`, el del borrador. La propuesta va
+// siempre en el idioma del borrador, que es en el que la persona trabaja.
+let uiSetting: 'auto' | Lang = 'auto'
+const uiLang = (text: string): Lang => (uiSetting === 'auto' ? langOf(text) : uiSetting)
+const ui = (text: string) => UI[uiLang(text)]
+
 const isCoachable = (text: string) => text.trim().length > 0 && !text.trimStart().startsWith('/')
 
 function failureNote(r: ModelCompleteResult, lang: Lang): string {
@@ -88,7 +94,7 @@ async function improve($: EngineInterface, text: string) {
   // Estado y panel se piden antes del primer await, mientras sigue en curso la pulsación o el comando de la
   // persona: un panel abierto después cuenta como no pedido y en un terminal estrecho no se coloca.
   const busy = update($, proposal, () => ({
-    original: text, text: '', lang, before, after: before, origin: 'local' as const, changes: [], missing: [], passes: 0, isBusy: true, isApplied: false,
+    original: text, text: '', lang: uiLang(text), before, after: before, origin: 'local' as const, changes: [], missing: [], passes: 0, isBusy: true, isApplied: false,
   }))
   const opening = openPane($)
   await busy
@@ -122,7 +128,7 @@ async function improve($: EngineInterface, text: string) {
   }
   const local = best ? null : buildPrompt(text, cwd)
   const out = best || keepAttachments(text, local!.prompt)
-  const after = assess(out, { known, cwd, lang })
+  const after = assess(out, { known, cwd, lang: uiLang(text) })
   improved = out
   improvedScore = after.score
   await update($, proposal, p =>
@@ -131,12 +137,12 @@ async function improve($: EngineInterface, text: string) {
           ...p,
           text: out,
           after: after.score,
-          missing: describeMissing(after, lang),
+          missing: describeMissing(after, uiLang(text)),
           passes,
           tokens: passes ? tokens : undefined,
           origin: best ? ('model' as const) : ('local' as const),
           model: best ? MODEL : undefined,
-          note: best ? undefined : failureNote(r, lang),
+          note: best ? undefined : failureNote(r, uiLang(text)),
           changes: local ? local.changes : [],
           isBusy: false,
         }
@@ -202,7 +208,7 @@ async function sendAs($: EngineInterface, text: string) {
 // VS Code: el compositor de la extensión no manda teclas, así que el botón lee el borrador al pulsarlo.
 async function improveFromBox($: EngineInterface) {
   const text = (await $.prompt.read()).text.trim()
-  const t = UI[langOf(text)]
+  const t = ui(text)
   if (!isCoachable(text)) return $.ui.toast(t.empty)
   if (text.length > MAX_DRAFT) return $.ui.toast(t.tooLong)
   await improve($, text)
@@ -221,17 +227,24 @@ async function onDraft($: EngineInterface, text: string, isOwnFill: boolean) {
   if (hasBand) return
   if (!isCoachable(text)) return $.ui.status(undefined)
   const a = assess(text)
-  const t = UI[langOf(text)]
+  const t = ui(text)
   $.ui.status(`${a.weak ? t.weak : t.solid} ${a.score}/100 · ${t.hint}`)
 }
 
-export const register: Register = on => {
+const DESCRIPTION = {
+  es: 'Prompt Coach: mejora el borrador del prompt con el modelo (o con reglas locales)',
+  en: 'Prompt Coach: improve the prompt draft with the model (or local rules)',
+  auto: 'Prompt Coach: improve the prompt draft / mejora el borrador',
+}
+
+export const register: Register = (on, options) => {
+  uiSetting = options.language === 'en' || options.language === 'es' ? options.language : 'auto'
 
   on('session.start', async ($, e, next) => {
     hasBand = e.surface === 'terminal' || e.surface === 'desktop'
     await $.command.register({
       name: 'coach',
-      description: 'Prompt Coach: mejora el borrador del prompt con el modelo (o con reglas locales)',
+      description: DESCRIPTION[uiSetting],
     })
     return next(e)
   })
@@ -255,7 +268,7 @@ export const register: Register = on => {
     const text = e.text.trim()
     if (!isCoachable(text)) return next(e)
     const a = assess(text)
-    const t = UI[langOf(text)]
+    const t = ui(text)
     if (!a.weak || a.intent === 'ask' || a.words < 3) {
       $.ui.status(`${a.weak ? t.weak : t.solid} ${a.score}/100`)
       return next(e)
@@ -267,7 +280,7 @@ export const register: Register = on => {
   on('command.run', { command: 'coach' }, async ($, e) => {
     const typed = e.args.trim()
     const text = (typed || (await $.prompt.read()).text).trim()
-    const t = UI[langOf(text)]
+    const t = ui(text)
     if (!isCoachable(text)) return { text: t.empty }
     if (text.length > MAX_DRAFT) return { text: t.tooLong }
     // Con panel colocado, el comando responde al momento y la propuesta llega al panel. Si el terminal es
@@ -289,7 +302,7 @@ export const register: Register = on => {
       const text = await read($, draft)
       if (!isCoachable(text)) return next(e)
       const a = assess(text)
-      const t = UI[langOf(text)]
+      const t = ui(text)
       const { Box, Button, Text } = $.ui.resolve(e)
       return (
         <Box flexWrap="wrap" alignItems="center" gap={1}>
@@ -312,7 +325,7 @@ export const register: Register = on => {
     const why = e.props.hasSurvey ? 'pass:survey' : !isCoachable(text) ? 'pass:empty' : 'draw'
     if (why !== 'draw') return next(e)
     const a = assess(text)
-    const t = UI[langOf(text)]
+    const t = ui(text)
     const { Box, Button, Text } = $.ui.resolve(e)
     return (
       <Box flexWrap="wrap" gap={1}>
@@ -333,7 +346,7 @@ export const register: Register = on => {
     const p = await read($, proposal)
     if (e.surface === 'vscode' || e.surface === 'mobile') {
       const { Box, Button, Text } = $.ui.resolve(e)
-      if (!p) return <Text dimColor>{UI.es.idle}</Text>
+      if (!p) return <Text dimColor>{ui('').idle}</Text>
       const t = UI[p.lang]
       if (p.isBusy) return <Text dimColor>{t.busy}</Text>
       return (
@@ -371,9 +384,9 @@ export const register: Register = on => {
     const { Box, Button, Input, Text } = $.ui.resolve(e)
     if (!p) {
       const text = await read($, draft)
-      if (!isCoachable(text)) return <Text dimColor>{UI.es.idle}</Text>
+      if (!isCoachable(text)) return <Text dimColor>{ui('').idle}</Text>
       const a = assess(text)
-      const t = UI[langOf(text)]
+      const t = ui(text)
       return (
         <Box flexWrap="wrap" gap={1}>
           <Text color={tone(a.score)}>{a.weak ? t.weak : t.solid}</Text>

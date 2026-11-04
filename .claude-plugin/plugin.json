@@ -1,8 +1,23 @@
 {
   "name": "prompt-coach",
-  "version": "1.1.3",
-  "description": "Puntúa el borrador del prompt mientras escribes y lo reescribe con Haiku (o con reglas locales) antes de enviarlo. Terminal, escritorio y extensión de VS Code.",
-  "author": { "name": "Diego Pérez" },
+  "version": "1.2.0",
+  "description": "Scores your prompt draft as you type and rewrites it with Haiku (or local rules) before you send it. English and Spanish. Terminal, desktop and VS Code.",
+  "author": {
+    "name": "Diego Pérez"
+  },
   "license": "MIT",
-  "types": "./types/index.d.ts"
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "language": {
+      "type": "string",
+      "title": "Language",
+      "description": "Interface language: auto follows the draft, en English, es Spanish. The proposal always keeps the language of the draft.",
+      "default": "auto",
+      "options": [
+        "auto",
+        "en",
+        "es"
+      ]
+    }
+  }
 }

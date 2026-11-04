@@ -296,3 +296,31 @@ test('on a terminal too narrow for the pane, /coach puts the proposal in its ans
   expect(ran.text).toMatch(/demasiado estrecho para el panel[\s\S]*\n\nObjetivo\nArregla el login\.$/)
   placed = true
 })
+
+test('language: en draws the interface in English even for a Spanish draft; the proposal keeps the draft language', { options: { language: 'en' } }, async ($, on) => {
+  engine(on, { isAnswered: true, text: 'Objetivo\nArregla el login.', usage: USAGE })
+  await $.session.start({ cwd: '/tmp/demo-app', surface: 'terminal', isInteractive: true })
+  await $.prompt.edit({ origin: { kind: 'composer' }, text: 'arregla el logi', cursor: 15, start: 15, end: 15, inputText: 'n' })
+  const band = await $.ui.mount({ ...BAND, props: { ...BAND.props, bodyColumns: 80 }, surface: 'terminal' })
+  expect(await band.find({ type: 'Text', text: 'Weak prompt' })).toBeDefined()
+  expect((await band.find({ type: 'Button', key: 'improve' }))?.text).toBe('Improve prompt')
+  await band.unmount()
+
+  await $.session.start({ cwd: '/tmp/demo-app', surface: 'vscode', isInteractive: true })
+  const ran = await $.command.run({ command: 'coach', args: 'arregla el login', origin: ORIGIN, presentation: 'transcript' })
+  expect(ran.text).toBe('Prompt Coach: proposal ready in the pane.\n\nObjetivo\nArregla el login.')
+  expect(asked.at(-2)).toMatch(/Borrador a reescribir:\narregla el login$/)
+  const ui = await $.ui.mount({ ...PANE, surface: 'vscode' })
+  expect((await ui.find({ type: 'Text', text: /Missing for 100/ }))?.text).toMatch(/goal 10\/20/)
+  expect((await ui.find({ type: 'Button', key: 'send' }))?.text).toBe('Send proposal')
+  await ui.unmount()
+})
+
+test('language: es draws the interface in Spanish for an English draft', { options: { language: 'es' } }, async ($, on) => {
+  engine(on, { isAnswered: false, reason: 'empty-reply', usage: USAGE })
+  await $.session.start({ cwd: '/tmp/demo-app', surface: 'terminal', isInteractive: true })
+  await $.prompt.edit({ origin: { kind: 'composer' }, text: 'fix the logi', cursor: 12, start: 12, end: 12, inputText: 'n' })
+  const band = await $.ui.mount({ ...BAND, props: { ...BAND.props, bodyColumns: 80 }, surface: 'terminal' })
+  expect(await band.find({ type: 'Text', text: 'Prompt flojo' })).toBeDefined()
+  await band.unmount()
+})
