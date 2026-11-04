@@ -14,7 +14,7 @@ const MAX_DRAFT = 8000
 
 const draft = atom({ plugin: 'prompt-coach', key: 'draft' } as const, '')
 const proposal = atom({ plugin: 'prompt-coach', key: 'proposal' } as const, null, {
-  shape: 'proposal-2',
+  shape: 'proposal-3',
 })
 
 
@@ -142,6 +142,7 @@ async function rewrite($: EngineInterface, text: string, lang: Lang, id: number,
           text: out,
           after: after.score,
           missing: describeMissing(after, uiLang(text)),
+          ask: askFor(after),
           passes,
           tokens: passes ? tokens : undefined,
           origin: best ? ('model' as const) : ('local' as const),
@@ -153,6 +154,18 @@ async function rewrite($: EngineInterface, text: string, lang: Lang, id: number,
       : p,
   )
   return { text: out, score: after.score }
+}
+
+// Contexto y detalle son datos que el modelo no puede inventar: si faltan, el panel se los pide a la persona.
+function askFor(a: ReturnType<typeof assess>): 'contexto' | 'detalle' | undefined {
+  return a.missing.find(c => c.id === 'contexto' || c.id === 'detalle')?.id as 'contexto' | 'detalle' | undefined
+}
+
+// Lo que responde se añade al borrador, así cuenta como algo que la persona dijo, y se mejora otra vez.
+async function addFact($: EngineInterface, fact: string) {
+  const p = await read($, proposal)
+  if (!p || p.isBusy || !fact.trim()) return
+  await improve($, `${p.original}\n\n${fact.trim()}`)
 }
 
 async function apply($: EngineInterface, text?: string) {
@@ -386,7 +399,7 @@ export const register: Register = (on, options) => {
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const p = await read($, proposal)
     if (e.surface === 'vscode' || e.surface === 'mobile') {
-      const { Box, Button, Text } = $.ui.resolve(e)
+      const { Box, Button, Input, Text } = $.ui.resolve(e)
       if (!p) return <Text dimColor>{ui('').idle}</Text>
       const t = UI[p.lang]
       if (p.isBusy) return busyView($, e, t)
@@ -404,6 +417,9 @@ export const register: Register = (on, options) => {
           </Box>
           {p.note !== undefined && <Text color="warning">{p.note}</Text>}
           {p.missing.length > 0 && <Text dimColor>{t.toFull}: {p.missing.join('; ')}</Text>}
+          {p.ask !== undefined && (
+            <Input key="fact" placeholder={p.ask === 'contexto' ? t.askContexto : t.askDetalle} submitLabel={t.addFact} onSubmit={value => addFact($, value)} />
+          )}
           <Box flexWrap="wrap" gap={1}>
             <Button key="send" label={t.send} variant="primary" onPress={() => sendAs($, p.text)} />
             {p.isApplied ? (
@@ -455,6 +471,7 @@ export const register: Register = (on, options) => {
     const { gap, rows } = paneLayout(e.props.scroll.bodyRows, cols, [
       `${t.proposal} ${p.before}/100 → ${p.after}/100 ${t.fromModel}: ${p.model ?? ''}`, p.note ?? '', changes, missing,
       labels.map(l => `[ ${l} (x) ]`).join(' '),
+      p.ask !== undefined ? t.askContexto : '',
     ])
     const actions = (
       <Box flexWrap="wrap" gap={1}>
@@ -489,6 +506,9 @@ export const register: Register = (on, options) => {
         {p.note !== undefined && <Text color="warning">{p.note}</Text>}
         {changes !== '' && <Text dimColor>{changes}</Text>}
         {missing !== '' && <Text dimColor>{missing}</Text>}
+        {p.ask !== undefined && (
+          <Input key="fact" placeholder={p.ask === 'contexto' ? t.askContexto : t.askDetalle} submitLabel={t.addFact} onSubmit={value => addFact($, value)} />
+        )}
         {short && actions}
         <Input
           key="proposal"

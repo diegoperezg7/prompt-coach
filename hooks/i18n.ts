@@ -18,6 +18,9 @@ const en = {
   toFull: 'Missing for 100',
   command: 'Prompt Coach: improve the prompt draft with the model (or local rules)',
   gap: 'missing',
+  askContexto: 'Which file, path or symbol? It counts as context for 100:',
+  askDetalle: 'What happens now and what should happen (or the exact error)?',
+  addFact: 'Add and improve',
 }
 
 export type UiText = { [K in keyof typeof en]: string }
@@ -41,6 +44,9 @@ export const UI: Record<Lang, UiText> = {
     toFull: 'Falta para 100',
     command: 'Prompt Coach: mejora el borrador del prompt con el modelo (o con reglas locales)',
     gap: 'falta',
+    askContexto: '¿Qué archivo, ruta o símbolo? Cuenta como contexto para el 100:',
+    askDetalle: '¿Qué pasa ahora y qué debería pasar (o el error literal)?',
+    addFact: 'Añadir y mejorar',
   },
   fr: {
     weak: 'Prompt faible', solid: 'Prompt solide', improve: 'Améliorer le prompt', refine: 'Affiner',
@@ -59,6 +65,9 @@ export const UI: Record<Lang, UiText> = {
     toFull: 'Il manque pour 100',
     command: 'Prompt Coach : améliore le brouillon du prompt avec le modèle (ou des règles locales)',
     gap: 'il manque',
+    askContexto: 'Quel fichier, chemin ou symbole ? Il compte comme contexte pour 100 :',
+    askDetalle: 'Que se passe-t-il maintenant et que devrait-il se passer (ou l’erreur exacte) ?',
+    addFact: 'Ajouter et améliorer',
   },
   de: {
     weak: 'Schwacher Prompt', solid: 'Solider Prompt', improve: 'Prompt verbessern', refine: 'Feinschliff',
@@ -77,6 +86,9 @@ export const UI: Record<Lang, UiText> = {
     toFull: 'Fehlt für 100',
     command: 'Prompt Coach: verbessert den Prompt-Entwurf mit dem Modell (oder lokalen Regeln)',
     gap: 'fehlt',
+    askContexto: 'Welche Datei, welcher Pfad oder welches Symbol? Zählt als Kontext für 100:',
+    askDetalle: 'Was passiert jetzt und was sollte passieren (oder der genaue Fehler)?',
+    addFact: 'Ergänzen und verbessern',
   },
   pt: {
     weak: 'Prompt fraco', solid: 'Prompt sólido', improve: 'Melhorar prompt', refine: 'Refinar',
@@ -95,6 +107,9 @@ export const UI: Record<Lang, UiText> = {
     toFull: 'Falta para 100',
     command: 'Prompt Coach: melhora o rascunho do prompt com o modelo (ou regras locais)',
     gap: 'falta',
+    askContexto: 'Qual arquivo, caminho ou símbolo? Conta como contexto para o 100:',
+    askDetalle: 'O que acontece agora e o que deveria acontecer (ou o erro exato)?',
+    addFact: 'Adicionar e melhorar',
   },
   it: {
     weak: 'Prompt debole', solid: 'Prompt solido', improve: 'Migliora prompt', refine: 'Rifinisci',
@@ -113,5 +128,8 @@ export const UI: Record<Lang, UiText> = {
     toFull: 'Manca per 100',
     command: 'Prompt Coach: migliora la bozza del prompt con il modello (o regole locali)',
     gap: 'manca',
+    askContexto: 'Quale file, percorso o simbolo? Conta come contesto per il 100:',
+    askDetalle: 'Cosa succede ora e cosa dovrebbe succedere (o l’errore esatto)?',
+    addFact: 'Aggiungi e migliora',
   },
 }

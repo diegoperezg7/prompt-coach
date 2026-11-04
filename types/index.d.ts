@@ -12,6 +12,8 @@ export type Proposal = {
   changes: string[]
   /** Criterios de la rúbrica por debajo de su máximo, ya redactados ("contexto 8/15 (...)"). */
   missing: string[]
+  /** El dato que solo la persona puede dar y que falta para 100, si lo hay: el panel se lo pregunta. */
+  ask?: 'contexto' | 'detalle'
   /** Llamadas al modelo que respondieron: 1, o 2 con la pasada de reparación. */
   passes: number
   /** Tokens de entrada y salida sumados de todas las pasadas. */

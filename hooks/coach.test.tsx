@@ -283,7 +283,7 @@ test('terminal and desktop adapt to the room: narrow band keeps score and button
     }
 
     await $.command.run({ command: 'coach', args: 'arregla el login', origin: ORIGIN, presentation: 'transcript' })
-    for (const [bodyColumns, bodyRows, editor] of [[30, 10, 3], [60, 18, 13], [120, 40, 14]] as const) {
+    for (const [bodyColumns, bodyRows, editor] of [[30, 10, 3], [60, 18, 11], [120, 40, 14]] as const) {
       const ui = await $.ui.mount({ ...PANE, props: { ...PANE.props, bodyColumns, scroll: { offset: 0, bodyRows } }, surface })
       expect((await ui.find({ type: 'Input', key: 'proposal' }))?.props.rows).toBe(editor)
       for (const key of ['apply', 'copy', 'cancel']) expect(await ui.find({ type: 'Button', key })).toBeDefined()
@@ -506,4 +506,19 @@ test('model: session rewrites with the session own model and the pane names it',
   const ui = await $.ui.mount({ ...PANE, surface: 'vscode' })
   expect(await ui.find({ type: 'Text', text: /modelo: opus/ })).toBeDefined()
   await ui.unmount()
+})
+
+test('when context is missing the pane asks for it; the answer joins the draft and counts as verified', async ($, on) => {
+  engine(on, (prompt: string) => ({ isAnswered: true, text: /src\/auth\/login\.ts/.test(prompt) ? FULL.replace(/hooks\/register\.tsx/g, 'src/auth/login.ts') : FULL, usage: USAGE }))
+  for (const surface of ['terminal', 'vscode'] as const) {
+    asked.length = 0
+    await $.session.start({ cwd: '/tmp/demo-app', surface, isInteractive: true })
+    await $.command.run({ command: 'coach', args: 'arregla el login', origin: ORIGIN, presentation: 'transcript' })
+    const ui = await $.ui.mount({ ...PANE, surface })
+    expect((await ui.find({ type: 'Input', key: 'fact' }))?.props.placeholder).toMatch(/Qué archivo, ruta o símbolo/)
+    await ui.input({ plugin: 'prompt-coach', key: 'fact', text: 'src/auth/login.ts' })
+    expect(asked.some(a => /Draft to rewrite:\narregla el login\n\nsrc\/auth\/login\.ts/.test(a))).toBe(true)
+    expect(await ui.find({ type: 'Input', key: 'fact' })).toBeUndefined()
+    await ui.unmount()
+  }
 })
