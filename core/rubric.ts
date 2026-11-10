@@ -215,8 +215,23 @@ const CUE = {
   negations: /\b(no [a-z]+(?:es|as|ar|er|ir)|ne pas [a-z]+|ne [a-z]+(?:e|er|ez) (?:pas|que|rien)|n'[a-z]+(?:e|er) (?:pas|que)|pas de nouve(?:au|aux|lle|lles)|keine? (?:neue[nr]?|weitere[nr]?|anderen?)|nicht [a-z]+en|nao [a-z]+(?:e|ar|er|ir)|non [a-z]+(?:are|ere|ire)|limita|limite|limit(?:e|ed)? (?:to|the|it)|no new)\b/g,
   // «devuelve» o «returns» a secas no cuentan: suelen describir el fallo («devuelve 500»), no la respuesta.
   format: /\b(formato|responde con|responde en|responder con|responder en|responda con|enumera|enumerar|enumere|lista los|listar|indica los archivos|devuelveme|dame|entregame|resumen|resume|tabla|diff|en \d+ lineas|lista de cambios|output|respond with|reply with|give me|format|summary|table|bullet|list of changes|reponds avec|donne-moi|tableau|liste des changements|antwortformat|antworte mit|gib mir|zusammenfassung|tabelle|responda com|resumo|tabela|rispondi con|dammi|riepilogo|tabella)\b/,
+  // Cabecera de la sección de formato: sola no dice qué devolver; cuenta lo que la sigue.
+  formatHeader: /\b(formato de respuesta|formato de resposta|formato della risposta|response format|format de reponse|antwortformat|formato|format)\s*:/,
   vague: /\b(esto|eso|aquello|lo de|algo|hazlo|arreglalo|cosas|cosa|etc|stuff|thing|things|whatever|somehow|truc|machin|zeug|irgendwie|coisa|coisas|troco|roba|coso)\b/g,
   gapWord: /\b(rellena|fill in|tbd|xxx|remplir|ausfullen|preencha|da completare)\b/g,
+}
+
+/**
+ * Criterios que no aplican a un tipo de petición: una explicación o una pregunta no tienen «terminado» ni alcance
+ * que limitar, y una revisión termina al informar. No puntúan ni restan: la nota se reparte entre los que aplican.
+ */
+const NOT_APPLICABLE: Partial<Record<Intent, CriterionId[]>> = {
+  explain: ['aceptacion', 'restricciones'],
+  review: ['aceptacion'],
+}
+export function notApplicable(intent: Intent, question: boolean): CriterionId[] {
+  // «ask» es también lo que no encaja en ningún tipo: solo una pregunta de verdad se trata como explicación.
+  return intent === 'ask' && question ? NOT_APPLICABLE.explain! : NOT_APPLICABLE[intent] ?? []
 }
 
 /**
@@ -224,18 +239,21 @@ const CUE = {
  * conversación): una ruta o símbolo de la propuesta solo cuenta como contexto si aparece ahí, para que
  * inventarse una ruta no suba la nota.
  */
-export function assess(text: string, opts: { known?: string; cwd?: string } = {}): Assessment {
+export function assess(text: string, opts: { known?: string; cwd?: string; turn?: Turn } = {}): Assessment {
   const trimmed = String(text || '').trim()
   const n = normalize(trimmed)
   const words = trimmed.split(/\s+/).filter(Boolean).length
   const intent = detectIntent(trimmed)
   const criteria: Criterion[] = []
-  const add = (id: CriterionId, points: number, why?: WhyKey) => criteria.push({ id, points, max: MAX[id], why: points < MAX[id] ? why : undefined })
+  const question = /\?\s*$/.test(trimmed) || trimmed.startsWith('¿')
+  const skip = new Set(notApplicable(intent, question))
+  const add = (id: CriterionId, points: number, why?: WhyKey) =>
+    // Uno que no aplica cuenta si se cumple entero (quien lo escribe lo quiere); si no, ni suma ni resta.
+    criteria.push(skip.has(id) && points < MAX[id] ? { id, points: 0, max: 0 } : { id, points, max: MAX[id], why: points < MAX[id] ? why : undefined })
 
   // Objetivo: qué conseguir, con verbo y objeto (o una pregunta concreta). La longitud sola no basta.
   const anchors = anchorsOf(trimmed, opts.cwd)
   const hasVerb = intent !== 'ask' || has(CUE.goalVerb, n)
-  const question = /\?\s*$/.test(trimmed) || trimmed.startsWith('¿')
   if (words < 4) add('objetivo', 0, 'short')
   else if ((hasVerb && (words >= 6 || anchors.length > 0)) || (question && words >= 6)) add('objetivo', 20)
   else if (hasVerb || question || words >= 8) add('objetivo', 10, 'brief')
@@ -245,7 +263,8 @@ export function assess(text: string, opts: { known?: string; cwd?: string } = {}
   const known = opts.known ?? trimmed
   const verified = anchors.filter(a => known.includes(a))
   const discovery = has(CUE.discovery, n)
-  if (verified.length) add('contexto', 15)
+  // En mitad de una conversación el contexto ya está dicho: exigirlo otra vez es lo que lo hace repetir.
+  if (verified.length || (opts.turn && opts.turn !== 'new')) add('contexto', 15)
   else if (discovery || has(CUE.scoped, n)) add('contexto', 8, anchors.length ? 'unverified' : discovery ? 'discovery' : 'vagueScope')
   else add('contexto', anchors.length ? 5 : 0, anchors.length ? 'unverified' : 'noAnchor')
 
@@ -272,14 +291,20 @@ export function assess(text: string, opts: { known?: string; cwd?: string } = {}
   add('restricciones', limits >= 2 ? 15 : limits === 1 ? 8 : 0, limits === 1 ? 'oneLimit' : 'noLimit')
 
   // Formato de respuesta: qué devuelve el agente al terminar.
-  add('formato', has(CUE.format, n) ? 10 : 0, 'noFormat')
+  // La cabecera se quita antes de buscar pistas: «Formato de respuesta:» vacío no puntúa, «Formato: tabla» sí.
+  const fmtSection = sectionAfter(n, CUE.formatHeader)
+  const fmtStated = has(CUE.format, n.replace(new RegExp(CUE.formatHeader.source, 'g'), ' ')) ||
+    (fmtSection !== null && fmtSection.split(/\s+/).filter(Boolean).length >= 3)
+  add('formato', fmtStated ? 10 : 0, 'noFormat')
 
   // Claridad: sin referencias vagas ni huecos por rellenar.
   const vague = count(CUE.vague, n)
   const gaps = (trimmed.replace(ATTACHMENT, '').match(/\[[^\]\n]{1,60}\](?!\()/g) || []).length + count(CUE.gapWord, n)
   add('claridad', gaps ? 0 : vague === 0 ? 5 : vague === 1 ? 2 : 0, gaps ? 'gaps' : 'vague')
 
-  let score = criteria.reduce((sum, c) => sum + c.points, 0)
+  // Sobre 100 aunque no apliquen todos los criterios.
+  const applicable = criteria.reduce((sum, c) => sum + c.max, 0)
+  let score = Math.round(criteria.reduce((sum, c) => sum + c.points, 0) * 100 / applicable)
   if (gaps) score -= 10
   if (words > 350) score -= 5
   if (words < 4) score = Math.min(score, 20)
@@ -305,6 +330,23 @@ export function isQuestion(text: string): boolean {
   return (intent === 'ask' || intent === 'explain') && t.split(/\s+/).length <= 40
 }
 
+/**
+ * Qué es el borrador dentro de la sesión. `new`: no hay conversación, es un encargo desde cero. `reply`: el agente
+ * acaba de preguntar algo y esto es la respuesta. `continue`: se sigue trabajando en lo mismo; el agente ya conoce
+ * el proyecto y lo hablado, así que no hay que repetírselo.
+ */
+export type Turn = 'new' | 'reply' | 'continue'
+
+export function turnOf(draft: string, rows: readonly { role: string; text: string }[]): Turn {
+  const talk = rows.filter(r => r.text.trim())
+  const last = talk[talk.length - 1]
+  if (!last) return 'new'
+  const words = String(draft || '').trim().split(/\s+/).filter(Boolean).length
+  // ponytail: «pregunta» = un «?» al final del último mensaje del agente; basta para «¿sigo con X o con Y?».
+  if (last.role === 'assistant' && /\?/.test(last.text.slice(-400)) && words <= 60) return 'reply'
+  return 'continue'
+}
+
 /** El criterio que más puntos resta, el primero de la rúbrica si empatan; null con todo al máximo. */
 export function topGap(a: Assessment): Criterion | null {
   return a.missing.reduce<Criterion | null>((best, c) => (!best || c.max - c.points > best.max - best.points ? c : best), null)
@@ -317,7 +359,8 @@ export function describeMissing(a: Assessment, lang: Lang, withReasons = true): 
 
 // ---------- prompts del modelo ----------
 
-// Cabeceras de la propuesta en cada idioma; la rúbrica las reconoce (CUE) para que la estructura puntúe.
+// Cabeceras de la propuesta en cada idioma. Ordenan la salida, pero no puntúan por sí solas: la rúbrica mide lo
+// que va debajo de cada una.
 const HEADERS: Record<Lang, string[]> = {
   en: ['Goal', 'Context', 'Detail', 'Acceptance criteria', 'Constraints', 'Response format'],
   es: ['Objetivo', 'Contexto', 'Detalle', 'Criterio de aceptación', 'Restricciones', 'Formato de respuesta'],
@@ -334,7 +377,38 @@ const LENGTH: Record<Verbosity, string> = {
 }
 
 /** Instrucciones del modelo: una plantilla para todos los idiomas, que fija idioma, cabeceras y longitud. */
-export function systemPrompt(lang: Lang, verbosity: Verbosity = 'balanced'): string {
+export function systemPrompt(lang: Lang, verbosity: Verbosity = 'balanced', turn: Turn = 'new'): string {
+  const shared = [
+    `- Write in the language of the draft (it looks like ${LANG_NAME[lang]}).`,
+    '- Never restate the project, the conversation or what the agent already did: it knows all of that.',
+    '- Do not invent facts, paths or requirements; resolve vague references ("that", "the second one", "yes")',
+    '  against the conversation so the agent cannot misread them.',
+    '- Keep [Image #N], [Pasted text #N ...], @path mentions and file paths verbatim.',
+    '- No em dashes. Return ONLY the final message, with no commentary and no code fences.',
+  ]
+  if (turn === 'reply') return [
+    "You polish a person's reply to a coding agent, in the middle of a conversation. The agent's last message",
+    'asked something; the draft is the answer.',
+    '',
+    'Rules:',
+    '- Answer what the agent asked, directly, as a plain message: no section headers, no Goal/Context template.',
+    '- Make the choice explicit (which option, which value) and add a next step only if the draft implies one.',
+    '- Keep it short: at most about three times the length of the draft and under 80 words.',
+    '- If the draft is already clear, return it almost unchanged.',
+    ...shared,
+  ].join('\n')
+  if (turn === 'continue') return [
+    "You improve a person's next message to a coding agent that is already working with them in this conversation.",
+    '',
+    'Rules:',
+    '- Pick the shape from the draft, not from a template. A short follow-up ("now do the same for X", "that broke Y")',
+    '  stays 1 to 4 plain sentences with no headers. Only a new, larger task may use short headed sections,',
+    '  and only the ones that add something (never a Context section repeating the project or the conversation).',
+    '- Add what the agent would otherwise get wrong: the concrete target, the expected result, how to check it,',
+    '  and a limit if the risk is real. Skip whatever the conversation already settled.',
+    `- ${LENGTH[verbosity]}`,
+    ...shared,
+  ].join('\n')
   return [
     "You are a senior prompt engineer. Rewrite a person's draft so a coding agent gets it right first time.",
     '',
@@ -383,8 +457,9 @@ export function projectRulesBlock(files: { name: string; text: string }[], max =
 }
 
 /** Mensaje de usuario de la primera reescritura. */
-export function rewritePrompt(draft: string, opts: { cwd?: string; context?: string; rules?: string }): string {
-  const project = opts.cwd ? `Project: ${projectName(opts.cwd)} (${opts.cwd})` : ''
+export function rewritePrompt(draft: string, opts: { cwd?: string; context?: string; rules?: string; turn?: Turn }): string {
+  // A mitad de conversación el nombre del proyecto solo invita a repetirlo.
+  const project = opts.cwd && (opts.turn ?? 'new') === 'new' ? `Project: ${projectName(opts.cwd)} (${opts.cwd})` : ''
   return [project, opts.rules || '', opts.context || '', `Draft to rewrite:\n${draft}`].filter(Boolean).join('\n\n')
 }
 
@@ -401,16 +476,85 @@ export function repairPrompt(draft: string, previous: string, a: Assessment, opt
   ].join('\n\n')
 }
 
+/**
+ * Si hace falta la segunda pasada. La reparación empuja hacia la plantilla completa: en encargos nuevos siempre
+ * que falte algo; a mitad de conversación solo si la propuesta sigue floja; en una respuesta, nunca.
+ */
+export function shouldRepair(a: Assessment, turn: Turn = 'new'): boolean {
+  return (turn === 'new' ? a.score < 100 : turn === 'continue' && a.weak) && isRepairable(a)
+}
+
+// ---------- completar un borrador que ya está bien ----------
+
+export const SOLID_FROM = 80
+const HEADER_OF: Partial<Record<CriterionId, number>> = { objetivo: 0, aceptacion: 3, restricciones: 4, formato: 5 }
+
+/** Un encargo nuevo con nota alta no se reescribe: se conserva tal cual y, si acaso, se completa. */
+export function isSolid(a: Assessment, turn: Turn = 'new'): boolean {
+  return turn === 'new' && a.score >= SOLID_FROM
+}
+
+/** Lo que el modelo puede añadir a un borrador sin inventar datos: contexto y detalle tiene que darlos la persona. */
+export function completable(a: Assessment): CriterionId[] {
+  return a.missing.map(c => c.id).filter(id => HEADER_OF[id] !== undefined)
+}
+
+/** Instrucciones para completar: el borrador intacto y, debajo, solo las secciones que faltan con su cabecera. */
+export function completeSystem(lang: Lang): string {
+  return [
+    "You complete a person's prompt for a coding agent. It is already good: keep it exactly as written.",
+    '',
+    'Rules:',
+    '- Return the draft verbatim first, character for character. Then append ONLY the missing parts you are given,',
+    '  each as its own section: the header on its own line, then at most two short bullets.',
+    '- Do not rewrite, reorder, summarise or restate anything the draft already says.',
+    `- Write in the language of the draft (it looks like ${LANG_NAME[lang]}).`,
+    '- Do not state project facts that are not given (file or test names, commands, causes): tell the agent to check them.',
+    '- No em dashes. Return ONLY the final prompt, with no commentary and no code fences.',
+  ].join('\n')
+}
+
+/** Mensaje de usuario para completar: qué falta, con la cabecera que debe llevar en el idioma del borrador. */
+export function completePrompt(draft: string, a: Assessment, lang: Lang, opts: { cwd?: string; context?: string; rules?: string }): string {
+  const add = a.missing.filter(c => HEADER_OF[c.id] !== undefined)
+    .map(c => `- ${HEADERS[lang][HEADER_OF[c.id]!]}: ${LABEL.en[c.id]}${c.why ? ` (${WHY.en[c.why]})` : ''}`)
+  return [rewritePrompt(draft, opts).replace('Draft to rewrite:', 'Draft to complete:'), `Append only these sections:\n${add.join('\n')}`].join('\n\n')
+}
+
 /** Lo que una segunda pasada puede arreglar sin datos nuevos. */
 export function isRepairable(a: Assessment): boolean {
   return a.missing.some(c => c.id !== 'contexto' && c.id !== 'detalle') || a.missing.some(c => c.points === 0)
 }
 
-export function recentContext(rows: readonly { role: string; text: string }[]): string {
+type Row = { role: string; text: string; toolUses?: readonly { input?: Record<string, unknown> }[] }
+
+/**
+ * Ficheros que el agente leyó o editó en la conversación, los más recientes al final: son contexto que ya tiene,
+ * así «el archivo que acabas de tocar» se resuelve a su ruta y una ruta suya cuenta como verificada.
+ */
+export function touchedFiles(rows: readonly Row[], cwd = '', max = 20): string[] {
+  const found = new Set<string>()
+  for (const r of rows) for (const u of r.toolUses ?? []) for (const key of ['file_path', 'notebook_path', 'path']) {
+    const v = u.input?.[key]
+    if (typeof v !== 'string' || !v.trim()) continue
+    const rel = cwd && v.startsWith(cwd + '/') ? v.slice(cwd.length + 1) : v
+    found.delete(rel)
+    found.add(rel)
+  }
+  return [...found].slice(-max)
+}
+
+export function recentContext(rows: readonly Row[], cwd = ''): string {
   const tail = rows.filter(r => r.text.trim()).slice(-8)
   if (tail.length === 0) return ''
-  const lines = tail.map(r => `${r.role}: ${r.text.replace(/\s+/g, ' ').trim().slice(0, 700)}`)
-  return 'Recent conversation (the agent already knows it):\n' + lines.join('\n')
+  const files = touchedFiles(rows, cwd)
+  // El último mensaje se recorta por delante: la pregunta del agente suele ir al final.
+  const lines = tail.map((r, i) => {
+    const flat = r.text.replace(/\s+/g, ' ').trim()
+    return `${r.role}: ${i === tail.length - 1 && flat.length > 1500 ? '…' + flat.slice(-1500) : flat.slice(0, 700)}`
+  })
+  const touched = files.length ? `\nFiles the agent has read or edited (most recent last): ${files.join(', ')}` : ''
+  return 'Recent conversation (the agent already knows it):\n' + lines.join('\n') + touched
 }
 
 export function keepAttachments(original: string, proposalText: string): string {

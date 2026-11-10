@@ -1,7 +1,7 @@
 // Estado del mod: valores de $.state, ajustes del plugin, estado de la sesión y utilidades de idioma y nota.
 import type { EngineInterface } from 'claude-code'
 
-import { assess, detectLang, LABEL, topGap, WEAK_BELOW } from '../core/rubric.ts'
+import { assess, detectLang, isQuestion, LABEL, topGap, turnOf, WEAK_BELOW } from '../core/rubric.ts'
 import type { Lang, Verbosity } from '../core/rubric.ts'
 import { UI } from './i18n.ts'
 
@@ -43,7 +43,14 @@ export const ses = {
   stop: null as AbortController | null,
   // El borrador de la persona antes de «Sustituir borrador», para devolverlo con /coach undo.
   lastOriginal: null as string | null,
+  // La conversación al empezar el borrador actual: decide si es un encargo nuevo, una respuesta o una continuación.
+  talk: [] as readonly { role: string; text: string }[],
 }
+
+/** Nota del borrador según dónde cae en la conversación. */
+export const scoreOf = (text: string) => assess(text, { turn: turnOf(text, ses.talk) })
+/** Ni las preguntas ni las respuestas a una pregunta del agente se puntúan: la rúbrica mide encargos. */
+export const skipScore = (text: string) => isQuestion(text) || turnOf(text, ses.talk) === 'reply'
 
 // En `auto`, el idioma del borrador solo cuando la detección es segura; si no, el último seguro. Así la interfaz
 // no salta de idioma con las primeras palabras («fix» sin más se leería como español).

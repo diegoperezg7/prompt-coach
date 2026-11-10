@@ -3,12 +3,11 @@
 import { atom, read } from 'claude-code'
 import type { EngineInterface, RenderInput } from 'claude-code'
 
-import { assess, isQuestion } from '../core/rubric.ts'
 import { addFact, apply, dismiss, improve, improveFromBox, pasteHint, sendAs, startPoll } from './actions.ts'
 import { hasPasteChip } from '../core/pastes.ts'
 import { UI } from './i18n.ts'
 import { usageLine } from './usage.ts'
-import { gapHint, HINT_COLS, isCoachable, NARROW, paneLayout, ses, tone, ui } from './state.ts'
+import { gapHint, HINT_COLS, isCoachable, NARROW, paneLayout, scoreOf, ses, skipScore, tone, ui } from './state.ts'
 
 // El motor exige que cada fichero declare las referencias de $.state que lee o escribe; actions.ts y
 // views.tsx declaran las mismas (misma clave y misma forma).
@@ -35,12 +34,12 @@ export async function bandVscode($: EngineInterface, e: BandEvent) {
   if (e.props.hasSurvey) return null
   if (await read($, proposal)) return null
   const text = await read($, draft)
-  if (!isCoachable(text) || isQuestion(text)) return null
+  if (!isCoachable(text) || skipScore(text)) return null
   if (hasPasteChip(text)) {
     const { Text } = $.ui.resolve(e)
     return <Text key="paste" dimColor>{pasteHint(text)}</Text>
   }
-  const a = assess(text)
+  const a = scoreOf(text)
   const t = ui(text)
   const { Box, Button, Text } = $.ui.resolve(e)
   return (
@@ -64,12 +63,12 @@ export async function bandVscode($: EngineInterface, e: BandEvent) {
 
 export async function bandTerminal($: EngineInterface, e: BandEvent) {
   const text = await read($, draft)
-  if (e.props.hasSurvey || !isCoachable(text) || isQuestion(text)) return null
+  if (e.props.hasSurvey || !isCoachable(text) || skipScore(text)) return null
   if (hasPasteChip(text)) {
     const { Text } = $.ui.resolve(e)
     return <Text key="paste" dimColor>{pasteHint(text)}</Text>
   }
-  const a = assess(text)
+  const a = scoreOf(text)
   const t = ui(text)
   const { Box, Button, Text } = $.ui.resolve(e)
   return (
@@ -132,7 +131,7 @@ export async function paneTerminal($: EngineInterface, e: PaneEvent) {
   if (!p) {
     const text = await read($, draft)
     if (!isCoachable(text)) return <Text dimColor>{ui('').idle}</Text>
-    const a = assess(text)
+    const a = scoreOf(text)
     const t = ui(text)
     return (
       <Box flexWrap="wrap" gap={1}>

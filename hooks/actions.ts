@@ -3,17 +3,17 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, ModelCompleteResult } from 'claude-code'
 
 import {
-  assess, buildPrompt, describeMissing, LABEL, isQuestion, isRepairable, keepAttachments, langOf, projectRulesBlock,
-  recentContext, repairPrompt, rewritePrompt, systemPrompt, unfence,
+  assess, buildPrompt, describeMissing, LABEL, keepAttachments, langOf, projectRulesBlock,
+  completable, completePrompt, completeSystem, isSolid, recentContext, repairPrompt, rewritePrompt, shouldRepair, systemPrompt, turnOf, unfence,
 } from '../core/rubric.ts'
-import type { CriterionId, Lang } from '../core/rubric.ts'
+import type { CriterionId, Lang, Turn } from '../core/rubric.ts'
 import { UI } from './i18n.ts'
 import { callCost } from '../core/pricing.ts'
 import { draftForModel, expandPastes, hasPasteChip, hasPastedBlock, restorePastes, splitPastes } from '../core/pastes.ts'
 import type { Pasted } from '../core/pastes.ts'
 import { nowMs, planDelta, planNow, recordCalls, summarize } from './usage.ts'
 import type { Call } from './usage.ts'
-import { cfg, isCoachable, MAX_DRAFT, noteLang, PANE, RULE_FILES, ses, ui, uiLang } from './state.ts'
+import { cfg, isCoachable, MAX_DRAFT, noteLang, PANE, RULE_FILES, scoreOf, ses, skipScore, ui, uiLang } from './state.ts'
 
 // El motor exige que cada fichero declare las referencias de $.state que lee o escribe; actions.ts y
 // views.tsx declaran las mismas (misma clave y misma forma).
@@ -46,7 +46,7 @@ export async function improve($: EngineInterface, sent: string, opts: { held?: b
   const pasted = hasPastedBlock(sent) ? splitPastes(sent) : null
   const text = pasted ? expandPastes(sent) : sent
   const lang = langOf(text)
-  const before = assess(text).score
+  const before = scoreOf(text).score
   noteLang($, text)
   ses.edited = null
   ses.stop?.abort()
@@ -78,20 +78,25 @@ async function rewrite($: EngineInterface, text: string, pasted: Pasted | null, 
   const cwd = await $.session.cwd()
   const used = cfg.model === 'session' ? await $.session.model() : cfg.model
 
-  const context = recentContext(await $.session.messages())
-  const rules = cfg.projectRules
+  const rows = await $.session.messages()
+  ses.talk = rows
+  const turn = turnOf(text, rows)
+  lastTurn = turn
+  const context = recentContext(rows, cwd)
+  // Una respuesta a una pregunta del agente no necesita las reglas del proyecto: solo engordan la respuesta.
+  const rules = cfg.projectRules && turn !== 'reply'
     ? projectRulesBlock(await Promise.all(RULE_FILES.map(async name => ({ name, text: await $.fs.read(`${cwd}/${name}`).catch(() => '') }))))
     : ''
   // Lo que el agente ya sabe: una ruta de la propuesta solo puntúa si sale de aquí.
   const known = [text, context, rules].join('\n')
-  const opts = { cwd, context, rules }
+  const opts = { cwd, context, rules, turn }
   // Cada llamada se mide: tokens de su respuesta y su coste a precio de lista (las del mod no entran en /cost).
   const calls: Call[] = []
-  async function ask(prompt: string, pass: 1 | 2) {
+  async function ask(prompt: string, pass: 1 | 2, system = systemPrompt(lang, cfg.verbosity, turn)) {
     const plan0 = await planNow($)
     const t0 = await nowMs($)
     const res = await $.model.complete({
-      model: used, system: systemPrompt(lang, cfg.verbosity), prompt, maxTokens: 900, effort: 'low', timeoutMs: 30_000,
+      model: used, system, prompt, maxTokens: 900, effort: 'low', timeoutMs: 30_000,
     }, { signal })
     const t1 = await nowMs($)
     const plan1 = await planNow($)
@@ -110,26 +115,46 @@ async function rewrite($: EngineInterface, text: string, pasted: Pasted | null, 
     return res
   }
 
-  const r = await ask(rewritePrompt(forModel, opts), 1)
-  let best = r.isAnswered ? keepAttachments(forModel, unfence(r.text)) : ''
-  let passes = r.isAnswered ? 1 : 0
+  // Un encargo que ya está bien no se reescribe: se conserva y se le añade solo lo que falte y se pueda añadir.
+  const draftA = assess(forModel, { known, cwd, turn })
+  const solid = !pasted && isSolid(draftA, turn)
+  let r: ModelCompleteResult | null = null
+  let best = ''
+  let passes = 0
+  if (solid) {
+    best = forModel
+    if (completable(draftA).length && !signal.aborted) {
+      r = await ask(completePrompt(forModel, draftA, lang, opts), 1, completeSystem(lang))
+      if (r.isAnswered) {
+        passes = 1
+        const done = keepAttachments(forModel, unfence(r.text))
+        // Si el modelo tocó el borrador en vez de añadir, se queda el borrador.
+        if (done.includes(forModel.trim()) && assess(done, { known, cwd, turn }).score > draftA.score) best = done
+      }
+    }
+  } else {
+    r = await ask(rewritePrompt(forModel, opts), 1)
+    best = r.isAnswered ? keepAttachments(forModel, unfence(r.text)) : ''
+    passes = r.isAnswered ? 1 : 0
+  }
   // Segunda pasada dirigida: solo si quedan criterios que el modelo puede cubrir sin inventar datos.
-  if (best) {
-    const a = assess(best, { known, cwd })
-    if (a.score < 100 && isRepairable(a) && !signal.aborted) {
+  if (best && !solid) {
+    const a = assess(best, { known, cwd, turn })
+    if (shouldRepair(a, turn) && !signal.aborted) {
       const r2 = await ask(repairPrompt(forModel, best, a, opts), 2)
       if (r2.isAnswered) {
         passes = 2
         const second = keepAttachments(forModel, unfence(r2.text))
-        if (assess(second, { known, cwd }).score > a.score) best = second
+        if (assess(second, { known, cwd, turn }).score > a.score) best = second
       }
     }
   }
-  const local = best ? null : buildPrompt(forModel, cwd)
-  const drafted = best || keepAttachments(forModel, local!.prompt)
+  // Sin modelo, una continuación se queda como está: la plantilla local es justo lo que sobra ahí.
+  const local = best || turn !== 'new' ? null : buildPrompt(forModel, cwd)
+  const drafted = best || (local ? keepAttachments(forModel, local.prompt) : forModel)
   // El material de apoyo vuelve entero a la propuesta, para que el agente lo reciba igual que con el original.
   const out = pasted ? restorePastes(drafted, pasted) : drafted
-  const after = assess(out, { known, cwd })
+  const after = assess(out, { known, cwd, turn })
   await update($, proposal, p =>
     p && id === ses.run
       ? {
@@ -141,8 +166,8 @@ async function rewrite($: EngineInterface, text: string, pasted: Pasted | null, 
           passes,
           usage: calls.length ? summarize(calls) : undefined,
           origin: best ? ('model' as const) : ('local' as const),
-          model: best ? used : undefined,
-          note: best ? undefined : failureNote(r, uiLang(text)),
+          model: best && calls.length ? used : undefined,
+          note: best || !r ? undefined : failureNote(r, uiLang(text)),
           changes: local ? local.changes : [],
           isBusy: false,
         }
@@ -172,6 +197,7 @@ export async function apply($: EngineInterface, text?: string) {
   if (!filled.isFilled) return $.ui.toast(UI[p.lang].notFilled)
   // Sustituido el borrador, el panel sobra: se cierra, y /coach undo devuelve el de la persona.
   ses.lastOriginal = p.original
+  await recordOutcome($, final !== p.original)
   $.ui.toast(UI[p.lang].appliedToast)
   await dismiss($)
 }
@@ -191,6 +217,7 @@ let lastPolled: string | null = null
 async function pollComposer($: EngineInterface) {
   const box = await $.prompt.read().catch(() => null)
   if (!box || box.text === lastPolled) return
+  await noteTalk($, lastPolled, box.text)
   lastPolled = box.text
   noteLang($, box.text)
   await update($, draft, () => box.text)
@@ -209,7 +236,10 @@ export async function sendAs($: EngineInterface, text: string) {
   const sent = await $.prompt.submit({ text })
   // Otro hook puede rechazar el envío: entonces el borrador de la persona vuelve al compositor.
   if (sent.drop !== undefined) await $.prompt.fill({ text: p?.original ?? text }).catch(() => undefined)
-  else await recordScore($, text)
+  else {
+    await recordScore($, text)
+    if (p && !p.isBusy) await recordOutcome($, text !== p.original)
+  }
 }
 
 // VS Code: el compositor de la extensión no manda teclas, así que el botón lee el borrador al pulsarlo.
@@ -231,6 +261,8 @@ export async function dismiss($: EngineInterface, restore = false) {
   ses.stop?.abort()
   ses.run++
   const p = await read($, proposal)
+  // Cancelar una propuesta ya hecha es descartarla.
+  if (restore && p && !p.isBusy && p.text) await recordOutcome($, false)
   // Tras retener un Enter en VS Code el compositor puede quedar vacío: Cancelar no debe perder el borrador.
   if (restore && p && !ses.hasBand && !(await $.prompt.read().catch(() => ({ text: '' }))).text.trim()) {
     await $.prompt.fill({ text: p.original }).catch(() => undefined)
@@ -239,15 +271,27 @@ export async function dismiss($: EngineInterface, restore = false) {
   await $.ui.close({ id: PANE }).catch(() => undefined)
 }
 
+// La conversación se lee al empezar cada borrador, no a cada tecla: es lo que dice si es respuesta o continuación.
+async function noteTalk($: EngineInterface, before: string | null, text: string) {
+  if (before?.trim() || !text.trim()) return
+  ses.talk = await $.session.messages().catch(() => ses.talk)
+}
+
 // Lo que hay en el compositor: teclear llega por prompt.edit, lo demás (historial, fill, clear) por prompt.change.
 export async function onDraft($: EngineInterface, text: string, keepProposal: boolean) {
+  await noteTalk($, await read($, draft), text)
   noteLang($, text)
   await update($, draft, () => text)
-  if (!keepProposal && (await read($, proposal))) void dismiss($)
+  const open = keepProposal ? null : await read($, proposal)
+  // Seguir escribiendo encima de una propuesta terminada también es descartarla.
+  if (open) {
+    if (!open.isBusy && open.text) await recordOutcome($, false)
+    void dismiss($)
+  }
   if (ses.hasBand) return
-  if (!isCoachable(text) || isQuestion(text)) return $.ui.status(undefined)
+  if (!isCoachable(text) || skipScore(text)) return $.ui.status(undefined)
   if (hasPasteChip(text)) return $.ui.status(pasteHint(text))
-  const a = assess(text)
+  const a = scoreOf(text)
   const t = ui(text)
   $.ui.status(`${a.weak ? t.weak : t.solid} ${a.score}/100 · ${t.hint}`)
 }
@@ -274,13 +318,43 @@ async function history($: EngineInterface): Promise<Entry[]> {
 export async function recordScore($: EngineInterface, text: string) {
   try {
     const now = await $.clock.now()
-    const a = assess(expandPastes(text))
+    const a = scoreOf(expandPastes(text))
     const kept = (await history($)).filter(e => now - e.t < 90 * DAY).slice(-1999)
     kept.push({ t: now, score: a.score, missing: a.missing.map(c => c.id) })
     await $.store.set(HISTORY, kept)
   } catch {
     // sin historial esta vez
   }
+}
+
+// ---------- lo que se hace con las propuestas ----------
+
+// Si cada propuesta se usó (sustituida o enviada) o se descartó, por tipo de turno, para dejar de retener el Enter
+// donde la persona siempre la descarta.
+const OUTCOMES = 'outcomes'
+const SHUN_AFTER = 5
+type Outcome = { t: number; turn: Turn; used: boolean }
+let lastTurn: Turn = 'new'
+
+async function outcomes($: EngineInterface): Promise<Outcome[]> {
+  const raw = await $.store.get(OUTCOMES).catch(() => undefined)
+  return Array.isArray(raw) ? (raw as Outcome[]).filter(o => typeof o?.used === 'boolean' && typeof o?.turn === 'string') : []
+}
+
+async function recordOutcome($: EngineInterface, used: boolean) {
+  try {
+    const kept = (await outcomes($)).slice(-199)
+    kept.push({ t: await $.clock.now(), turn: lastTurn, used })
+    await $.store.set(OUTCOMES, kept)
+  } catch {
+    // secundario: sin registro esta vez
+  }
+}
+
+/** True si las últimas cinco propuestas de este tipo de turno se descartaron todas: no se retiene el Enter. */
+export async function isShunned($: EngineInterface, turn: Turn): Promise<boolean> {
+  const last = (await outcomes($)).filter(o => o.turn === turn).slice(-SHUN_AFTER)
+  return last.length === SHUN_AFTER && last.every(o => !o.used)
 }
 
 /** «Esta semana: 72 (14 prompts) · semana anterior: 61 (9), +11. Criterio que más falla: aceptación (64 %).» */

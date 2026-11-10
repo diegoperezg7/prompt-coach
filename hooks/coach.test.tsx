@@ -155,7 +155,9 @@ test('on vscode the command returns the whole proposal, the pane draws it as tex
   expect(ran.text).toBe('Prompt Coach: propuesta lista en el panel.\n\nObjetivo\nArregla el login.')
   expect(asked.at(-2)).toMatch(/Recent conversation[\s\S]*user: acabo de cambiar el hook de prompt.edit[\s\S]*Draft to rewrite:\narregla el login$/)
   expect(asked.at(-1)).toMatch(/Your previous version \(\d+\/100\)[\s\S]*It is missing:\n- goal/)
-  expect(systems.at(-1)).toMatch(/language of the draft\. It looks like Spanish[\s\S]*Objetivo:, Contexto:/)
+  // With conversation, the rewrite follows the draft instead of the six-header template.
+  expect(systems.at(-1)).toMatch(/already working with them[\s\S]*it looks like Spanish/)
+  expect(systems.at(-1)).not.toMatch(/Objetivo:, Contexto:/)
 
   const ui = await $.ui.mount({ ...PANE, surface: 'vscode' })
   expect((await ui.find({ type: 'Text', text: /modelo: haiku/ }))?.text).toBe('modelo: haiku')
@@ -774,4 +776,39 @@ test('typing a command or a couple of words does not change the remembered langu
   await $.prompt.edit({ origin: { kind: 'composer' }, text: 'und', cursor: 3, start: 3, end: 3, inputText: ' so' })
   const ran = await $.command.run({ command: 'coach', args: 'undo', origin: ORIGIN, presentation: 'transcript' })
   expect(ran.text).toMatch(/no hay ningún borrador sustituido/)
+})
+
+test('a solid new draft is kept verbatim and only completed; a model that rewrites it instead is ignored', async ($, on) => {
+  const solid = 'In src/cart/tax.ts the VAT is applied twice when a coupon is used: a 100 € cart with a 10% coupon shows 108.9 instead of 99. Fix calculateTotal() so tax is applied once after the discount, add a unit test for that case, do not change the coupon API and reply with a short diff summary.'
+  const added = `${solid}\n\nAcceptance criteria:\n- The new unit test passes and the 100 € cart with a 10% coupon totals 99.\n\nConstraints:\n- Only change calculateTotal().`
+  let calls = 0
+  engine(on, () => ({ isAnswered: true, text: calls++ === 0 ? added : 'Goal:\nFix the VAT.\n\nAcceptance criteria:\n- Tests pass.', usage: USAGE }))
+  await $.session.start({ cwd: '/tmp/demo-app', surface: 'vscode', isInteractive: true })
+  let ran = await $.command.run({ command: 'coach', args: solid, origin: ORIGIN, presentation: 'transcript' })
+  expect(systems.at(-1)).toMatch(/keep it exactly as written/)
+  expect(asked.at(-1)).toMatch(/Draft to complete:[\s\S]*Append only these sections:\n- Acceptance criteria:[\s\S]*- Constraints:/)
+  expect(ran.text).toContain(added)
+
+  ran =await $.command.run({ command: 'coach', args: solid, origin: ORIGIN, presentation: 'transcript' })
+  expect(ran.text).toContain(solid)
+  expect(ran.text).not.toContain('Fix the VAT.')
+})
+
+test('where the person always discards the proposal, Enter is no longer held', async ($, on) => {
+  submitted.length = 0
+  engine(on, { isAnswered: true, text: FULL, usage: USAGE })
+  mock.clock(on)
+  const stored = new Map<string, unknown>()
+  on('store.get', (_, e) => ({ value: stored.get(e.key) }))
+  on('store.set', (_, e) => { stored.set(e.key, e.value); return { value: undefined } })
+  await $.session.start({ cwd: '/tmp/demo-app', surface: 'terminal', isInteractive: true })
+  const dictation = pastedBlock('7b0c', 'arregla el login que devuelve error').trim()
+  for (let i = 0; i < 5; i++) {
+    expect((await $.prompt.submit({ text: dictation, origin: { kind: 'composer' }, wait: false })).drop).toBeDefined()
+    const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+    await ui.press({ plugin: 'prompt-coach', key: 'send-original' })
+    await ui.unmount()
+  }
+  expect((stored.get('outcomes') as { used: boolean }[] | undefined)?.map(o => o.used)).toEqual([false, false, false, false, false])
+  expect((await $.prompt.submit({ text: dictation, origin: { kind: 'composer' }, wait: false })).drop).toBeUndefined()
 })

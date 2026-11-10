@@ -2,6 +2,18 @@
 
 All notable changes to Prompt Coach. Versions follow `.claude-plugin/plugin.json`.
 
+## 1.8.0 (2026-11-10)
+
+### Changed
+
+- **The rewrite follows the conversation.** An answer to a question the agent just asked is polished as a short, direct reply with no section headers. A follow-up in an ongoing conversation keeps its own shape and never restates the project or what was already said. Only a new task gets the full structure. Replies are not scored in the band.
+- **A good draft is completed, not rewritten.** A new task scoring 80 or more is kept word for word; the model only appends the missing goal, acceptance criteria, constraints or response format, each under its header. If the model rewrites the draft instead, the draft is kept.
+- **Criteria depend on the request.** Explanations and real questions are not penalised for missing acceptance criteria or constraints, and reviews for missing acceptance criteria; the score is out of 100 over the criteria that apply. A criterion that does not apply still counts when it is fully met.
+- **Headers alone score nothing.** An empty "Response format:" section no longer earns the format points.
+- **Files the agent read or edited are known context.** They are listed for the model and a path taken from them counts as verified.
+- **Enter is no longer held where proposals are always discarded.** After five discarded proposals in a row for the same kind of turn, Enter goes through; the score is still shown.
+- The bench covers replies and follow-ups, uses the same flow as the mod and the judge flags repeated context.
+
 ## 1.7.6 (2026-11-04)
 
 ### Fixed

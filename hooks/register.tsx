@@ -2,13 +2,13 @@
 // (views.tsx). La rúbrica y los prompts del modelo viven en core/, sin dependencias de Claude Code.
 import type { Register } from 'claude-code'
 
-import { assess, isQuestion, LANGS } from '../core/rubric.ts'
+import { LANGS, turnOf } from '../core/rubric.ts'
 import type { Lang } from '../core/rubric.ts'
-import { clearStaleBusy, improve, onDraft, openPane, pasteHint, recordScore, statsText, undo } from './actions.ts'
+import { clearStaleBusy, improve, isShunned, onDraft, openPane, pasteHint, recordScore, statsText, undo } from './actions.ts'
 import { expandPastes, hasPasteChip, hasPastedBlock } from '../core/pastes.ts'
 import { usageText } from './usage.ts'
 import { UI } from './i18n.ts'
-import { cfg, isCoachable, LAST_LANG, MAX_DRAFT, MODELS, PANE, ses, ui, uiLang } from './state.ts'
+import { cfg, isCoachable, LAST_LANG, MAX_DRAFT, MODELS, PANE, scoreOf, ses, skipScore, ui, uiLang } from './state.ts'
 import { bandTerminal, bandVscode, paneTerminal, paneVscode } from './views.tsx'
 
 export { paneLayout } from './state.ts'
@@ -58,17 +58,18 @@ export const register: Register = (on, options) => {
     // Historial: la nota de lo que sale de verdad desde el compositor (no comandos ni preguntas); lo que se
     // retiene no ha salido, y lo que se envía después desde el panel se registra en sendAs.
     const pass = async () => {
-      if (e.origin.kind === 'composer' && !e.command && !e.isMeta && isCoachable(text) && !isQuestion(text)) await recordScore($, text)
+      if (e.origin.kind === 'composer' && !e.command && !e.isMeta && isCoachable(text) && !skipScore(text)) await recordScore($, text)
       return next(e)
     }
     // VS Code retiene siempre (no ve las teclas); en terminal y escritorio, solo lo que lleva texto pegado.
     const canHold = ses.surface === 'vscode' || ses.surface === 'mobile' || (pastedHold && ses.surface !== null)
     if (!canHold || e.command || e.isMeta || e.attachments?.length) return pass()
     if (e.origin.kind !== 'composer') return pass()
-    if (!isCoachable(text) || isQuestion(text)) return pass()
-    const a = assess(text)
+    if (!isCoachable(text) || skipScore(text)) return pass()
+    const a = scoreOf(text)
     const t = ui(text)
-    if (!a.weak || a.intent === 'ask' || a.words < 3) {
+    // Donde la persona descarta siempre la propuesta, el Enter ya no se retiene; la nota sigue a la vista.
+    if (!a.weak || a.intent === 'ask' || a.words < 3 || (await isShunned($, turnOf(text, ses.talk)))) {
       $.ui.status(`${a.weak ? t.weak : t.solid} ${a.score}/100`)
       return pass()
     }
