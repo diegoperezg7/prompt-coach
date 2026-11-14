@@ -2,6 +2,14 @@
 
 All notable changes to Prompt Coach. Versions follow `.claude-plugin/plugin.json`.
 
+## 1.8.1 (2026-11-14)
+
+### Changed
+
+- **The pane shows the whole proposal.** In the terminal (Ghostty and others) the pane asks for the height the proposal needs once it is ready, and the editor is as tall as the text instead of stopping at 14 rows with its own scroll. The buttons sit above the proposal, always in view. A height the person dragged still wins, and a pane closed with Escape is not reopened.
+- **The rewrite says what done looks like and leaves the approach to the agent.** Instructions on how to think ("think hard", "piensa bien") and step-by-step plans are dropped unless the draft makes an order mandatory; `detailed` no longer adds a numbered plan, and the local engine no longer writes a "What I need" plan.
+- **Constraints say when to stop and ask** when a step is risky or irreversible.
+
 ## 1.8.0 (2026-11-10)
 
 ### Changed

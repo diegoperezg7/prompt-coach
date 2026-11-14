@@ -5,7 +5,7 @@ import type { Copy } from './rubric.ts'
 
 export const COPY_EXTRA: Record<'fr' | 'de' | 'pt' | 'it', Copy> = {
   fr: {
-    contexto: 'Contexte', objetivo: 'Objectif', necesito: 'Ce dont j’ai besoin', aceptacion: 'Critères d’acceptation',
+    contexto: 'Contexte', objetivo: 'Objectif', aceptacion: 'Critères d’acceptation',
     alcance: 'Contraintes', salida: 'Format de réponse', proyecto: 'Projet',
     askBefore: 'S’il manque une information importante, demande avant de supposer.',
     placeholder: {
@@ -19,18 +19,7 @@ export const COPY_EXTRA: Record<'fr' | 'de' | 'pt' | 'it', Copy> = {
       design: 'À remplir : contraintes, échelle attendue et ce qui ne peut pas changer.',
       ask: 'À remplir : résultat attendu et résultat actuel (message d’erreur s’il y en a un).',
     },
-    blocks: { contexto: 'contexte du projet', objetivo: 'objectif explicite', pasos: 'plan de travail', aceptacion: 'critères d’acceptation', restricciones: 'contraintes', formato: 'format de sortie' },
-    steps: {
-      fix: ['Trouve la cause racine avant de toucher au code et cite fichier et ligne.', 'Applique la correction minimale ; s’il y a plusieurs options, choisis-en une et justifie-la en une phrase.', 'Explique ce qui était cassé et pourquoi le changement le corrige.', 'Ajoute ou adapte un test qui échoue avant la correction et passe après.'],
-      change: ['Décris le comportement actuel et le comportement voulu, une phrase chacun.', 'Trouve le point qui décide ce comportement avant de modifier.', 'Applique le changement minimal et vérifie les cas limites concernés.', 'Vérifie l’avant et l’après avec un cas concret.'],
-      feature: ['Résume l’approche et les fichiers que tu vas toucher avant de modifier.', 'Implémente le changement minimal qui atteint l’objectif, sans extras.', 'Couvre le cas nominal et un cas limite avec des tests.', 'Signale en une ligne toute décision de conception avec compromis.'],
-      refactor: ['Définis le critère de fin avant de modifier.', 'Avance par petites étapes vérifiables.', 'Garde le comportement observable identique ; si quelque chose change, dis-le.', 'Lance la suite après chaque étape importante.'],
-      test: ['Liste les comportements à couvrir et les cas limites qui comptent.', 'Écris des tests qui échouent si le comportement casse.', 'Ne touche pas au code de production sauf nécessité, et justifie-le.', 'Indique ce qui reste hors périmètre et pourquoi.'],
-      explain: ['Explique le modèle mental, pas ligne par ligne.', 'Indique entrées, sorties et effets de bord.', 'Donne un exemple concret de ce dépôt.', 'Termine par les pièges ou hypothèses qui le cassent.'],
-      review: ['Priorise les bugs et les risques plutôt que le style.', 'Chaque constat : gravité, fichier et ligne, pourquoi c’est important et correction proposée.', 'S’il n’y a pas de vrais constats, dis-le ; n’invente rien.', 'Ne réécris pas le code sauf si on le demande.'],
-      design: ['Fais ressortir les exigences et contraintes manquantes.', 'Propose deux options avec leurs compromis et recommandes-en une.', 'Définis les interfaces et un plan par étapes.', 'Termine par les risques et leurs parades.'],
-      ask: ['Reformule la demande en une phrase pour confirmer que tu l’as comprise.', 'Réponds à ce qui est demandé, sans remplissage.', 'S’il manque une information, demande seulement celle-là.', 'S’il y a plusieurs lectures, choisis-en une et dis-le.'],
-    },
+    blocks: { contexto: 'contexte du projet', objetivo: 'objectif explicite', aceptacion: 'critères d’acceptation', restricciones: 'contraintes', formato: 'format de sortie' },
     restriction: {
       fix: ['Ne change pas le comportement en dehors de la panne.', 'Ne refactorise pas au passage.', 'N’invente pas de reproductions que tu ne peux pas vérifier.'],
       change: ['Ne change pas les autres flux qui partagent ce point.', 'Garde le comportement par défaut là où il ne s’applique pas.', 'Si cela touche aux performances ou aux permissions, dis-le avant de l’appliquer.'],
@@ -66,7 +55,7 @@ export const COPY_EXTRA: Record<'fr' | 'de' | 'pt' | 'it', Copy> = {
     },
   },
   de: {
-    contexto: 'Kontext', objetivo: 'Ziel', necesito: 'Was ich brauche', aceptacion: 'Akzeptanzkriterien',
+    contexto: 'Kontext', objetivo: 'Ziel', aceptacion: 'Akzeptanzkriterien',
     alcance: 'Einschränkungen', salida: 'Antwortformat', proyecto: 'Projekt',
     askBefore: 'Wenn eine wichtige Angabe fehlt, frag nach, bevor du etwas annimmst.',
     placeholder: {
@@ -80,18 +69,7 @@ export const COPY_EXTRA: Record<'fr' | 'de' | 'pt' | 'it', Copy> = {
       design: 'Ausfüllen: Einschränkungen, erwartete Größenordnung und was sich nicht ändern darf.',
       ask: 'Ausfüllen: erwartetes und tatsächliches Ergebnis (Fehlermeldung, falls vorhanden).',
     },
-    blocks: { contexto: 'Projektkontext', objetivo: 'ausdrückliches Ziel', pasos: 'Arbeitsplan', aceptacion: 'Akzeptanzkriterien', restricciones: 'Einschränkungen', formato: 'Ausgabeformat' },
-    steps: {
-      fix: ['Finde die Grundursache, bevor du Code änderst, und nenne Datei und Zeile.', 'Wende die kleinste Korrektur an; gibt es mehrere Optionen, wähle eine und begründe sie in einem Satz.', 'Erkläre, was kaputt war und warum die Änderung es behebt.', 'Füge einen Test hinzu oder passe einen an, der vor der Korrektur fehlschlägt und danach besteht.'],
-      change: ['Beschreibe das aktuelle und das gewünschte Verhalten, je ein Satz.', 'Finde die Stelle, die dieses Verhalten bestimmt, bevor du änderst.', 'Wende die kleinste Änderung an und prüfe die betroffenen Randfälle.', 'Prüfe vorher und nachher mit einem konkreten Fall.'],
-      feature: ['Fasse den Ansatz und die Dateien, die du anfasst, vor dem Ändern zusammen.', 'Implementiere die kleinste Änderung, die das Ziel erreicht, ohne Extras.', 'Decke den Normalfall und einen Randfall mit Tests ab.', 'Nenne jede Designentscheidung mit Zielkonflikt in einer Zeile.'],
-      refactor: ['Lege fest, wann es fertig ist, bevor du änderst.', 'Geh in kleinen, prüfbaren Schritten vor.', 'Halte das sichtbare Verhalten gleich; ändert sich etwas, sag es.', 'Lass die Testsuite nach jedem wichtigen Schritt laufen.'],
-      test: ['Liste die abzudeckenden Verhaltensweisen und die wichtigen Randfälle auf.', 'Schreib Tests, die fehlschlagen, wenn das Verhalten bricht.', 'Ändere keinen Produktionscode, außer es ist unvermeidbar, und begründe es.', 'Nenne, was außerhalb des Umfangs bleibt und warum.'],
-      explain: ['Erkläre das mentale Modell, nicht Zeile für Zeile.', 'Nenne Eingaben, Ausgaben und Nebenwirkungen.', 'Gib ein konkretes Beispiel aus diesem Repository.', 'Schließe mit den Fallen oder Annahmen, die es brechen.'],
-      review: ['Priorisiere Bugs und Risiken vor Stil.', 'Jeder Befund: Schweregrad, Datei und Zeile, warum er wichtig ist und Korrekturvorschlag.', 'Gibt es keine echten Befunde, sag es; erfinde nichts.', 'Schreib den Code nicht um, außer es wird verlangt.'],
-      design: ['Nenne fehlende Anforderungen und Einschränkungen.', 'Schlag zwei Optionen mit Zielkonflikten vor und empfiehl eine.', 'Definiere Schnittstellen und einen Plan in Phasen.', 'Schließe mit Risiken und Gegenmaßnahmen.'],
-      ask: ['Formuliere die Anfrage in einem Satz neu, um zu bestätigen, dass du sie verstanden hast.', 'Beantworte das Gefragte ohne Füllstoff.', 'Fehlt eine Angabe, frag nur nach dieser.', 'Gibt es mehrere Lesarten, wähle eine und sag es.'],
-    },
+    blocks: { contexto: 'Projektkontext', objetivo: 'ausdrückliches Ziel', aceptacion: 'Akzeptanzkriterien', restricciones: 'Einschränkungen', formato: 'Ausgabeformat' },
     restriction: {
       fix: ['Ändere kein Verhalten außerhalb des Fehlers.', 'Refaktoriere nicht nebenbei.', 'Erfinde keine Reproduktionen, die du nicht prüfen kannst.'],
       change: ['Ändere keine anderen Abläufe, die diese Stelle teilen.', 'Behalte das Standardverhalten dort, wo es nicht greift.', 'Betrifft es Leistung oder Berechtigungen, sag es vor dem Anwenden.'],
@@ -127,7 +105,7 @@ export const COPY_EXTRA: Record<'fr' | 'de' | 'pt' | 'it', Copy> = {
     },
   },
   pt: {
-    contexto: 'Contexto', objetivo: 'Objetivo', necesito: 'O que eu preciso', aceptacion: 'Critério de aceitação',
+    contexto: 'Contexto', objetivo: 'Objetivo', aceptacion: 'Critério de aceitação',
     alcance: 'Restrições', salida: 'Formato de resposta', proyecto: 'Projeto',
     askBefore: 'Se faltar um dado para fazer bem, pergunte antes de supor.',
     placeholder: {
@@ -141,18 +119,7 @@ export const COPY_EXTRA: Record<'fr' | 'de' | 'pt' | 'it', Copy> = {
       design: 'Preencha: restrições, escala esperada e o que não pode mudar.',
       ask: 'Preencha: resultado esperado e resultado atual (mensagem de erro, se houver).',
     },
-    blocks: { contexto: 'contexto do projeto', objetivo: 'objetivo explícito', pasos: 'plano de trabalho', aceptacion: 'critério de aceitação', restricciones: 'restrições', formato: 'formato de saída' },
-    steps: {
-      fix: ['Encontre a causa raiz antes de mexer no código e cite arquivo e linha.', 'Aplique a correção mínima; se houver várias opções, escolha uma e justifique em uma frase.', 'Explique o que estava quebrado e por que a mudança resolve.', 'Adicione ou ajuste um teste que falhe antes da correção e passe depois.'],
-      change: ['Descreva o comportamento atual e o desejado, uma frase cada.', 'Encontre o ponto que decide esse comportamento antes de editar.', 'Aplique a mudança mínima e revise os casos limite que ela afeta.', 'Confira o antes e o depois com um caso concreto.'],
-      feature: ['Resuma a abordagem e os arquivos que vai mexer antes de editar.', 'Implemente a mudança mínima que cumpra o objetivo, sem extras.', 'Cubra o caso feliz e um caso limite com testes.', 'Aponte em uma linha qualquer decisão de design com trade-off.'],
-      refactor: ['Defina o critério de pronto antes de editar.', 'Avance em passos pequenos e verificáveis.', 'Mantenha o comportamento observável idêntico; se algo mudar, diga.', 'Rode a suíte após cada passo relevante.'],
-      test: ['Liste os comportamentos a cobrir e os limites que importam.', 'Escreva testes que falhem se o comportamento quebrar.', 'Não mexa em código de produção, a menos que seja imprescindível, e justifique.', 'Indique o que fica de fora e por quê.'],
-      explain: ['Explique o modelo mental, não linha a linha.', 'Aponte entradas, saídas e efeitos colaterais.', 'Dê um exemplo concreto deste repositório.', 'Termine com as armadilhas ou suposições que o quebram.'],
-      review: ['Priorize bugs e riscos sobre estilo.', 'Cada achado: severidade, arquivo e linha, por que importa e correção sugerida.', 'Se não houver achados reais, diga; não invente.', 'Não reescreva o código, a menos que seja pedido.'],
-      design: ['Levante requisitos e restrições que faltam.', 'Proponha duas opções com trade-offs e recomende uma.', 'Defina interfaces e um plano em fases.', 'Feche com os riscos e como mitigá-los.'],
-      ask: ['Reformule o pedido em uma frase para confirmar que entendeu.', 'Responda ao que foi pedido, sem enrolação.', 'Se faltar um dado, peça só esse dado.', 'Se houver várias leituras, escolha uma e diga.'],
-    },
+    blocks: { contexto: 'contexto do projeto', objetivo: 'objetivo explícito', aceptacion: 'critério de aceitação', restricciones: 'restrições', formato: 'formato de saída' },
     restriction: {
       fix: ['Não mude comportamento fora da falha.', 'Não refatore de passagem.', 'Não invente reproduções que você não consiga verificar.'],
       change: ['Não mude outros fluxos que compartilham esse ponto.', 'Mantenha o comportamento padrão onde não se aplica.', 'Se afetar desempenho ou permissões, avise antes de aplicar.'],
@@ -188,7 +155,7 @@ export const COPY_EXTRA: Record<'fr' | 'de' | 'pt' | 'it', Copy> = {
     },
   },
   it: {
-    contexto: 'Contesto', objetivo: 'Obiettivo', necesito: 'Cosa mi serve', aceptacion: 'Criterio di accettazione',
+    contexto: 'Contesto', objetivo: 'Obiettivo', aceptacion: 'Criterio di accettazione',
     alcance: 'Vincoli', salida: 'Formato della risposta', proyecto: 'Progetto',
     askBefore: 'Se manca un dato importante, chiedilo prima di supporre.',
     placeholder: {
@@ -202,18 +169,7 @@ export const COPY_EXTRA: Record<'fr' | 'de' | 'pt' | 'it', Copy> = {
       design: 'Da completare: vincoli, scala prevista e cosa non può cambiare.',
       ask: 'Da completare: risultato atteso e risultato attuale (messaggio di errore, se c’è).',
     },
-    blocks: { contexto: 'contesto del progetto', objetivo: 'obiettivo esplicito', pasos: 'piano di lavoro', aceptacion: 'criterio di accettazione', restricciones: 'vincoli', formato: 'formato di uscita' },
-    steps: {
-      fix: ['Trova la causa radice prima di toccare il codice e cita file e riga.', 'Applica la correzione minima; se ci sono più opzioni, scegline una e motivala in una frase.', 'Spiega cosa era rotto e perché la modifica lo risolve.', 'Aggiungi o adatta un test che fallisca prima della correzione e passi dopo.'],
-      change: ['Descrivi il comportamento attuale e quello desiderato, una frase ciascuno.', 'Trova il punto che decide quel comportamento prima di modificare.', 'Applica la modifica minima e controlla i casi limite coinvolti.', 'Verifica il prima e il dopo con un caso concreto.'],
-      feature: ['Riassumi l’approccio e i file che toccherai prima di modificare.', 'Implementa la modifica minima che raggiunge l’obiettivo, senza extra.', 'Copri il caso principale e un caso limite con dei test.', 'Segnala in una riga ogni decisione di design con compromessi.'],
-      refactor: ['Definisci quando è finito prima di modificare.', 'Procedi a piccoli passi verificabili.', 'Mantieni identico il comportamento osservabile; se cambia qualcosa, dillo.', 'Esegui la suite dopo ogni passo importante.'],
-      test: ['Elenca i comportamenti da coprire e i casi limite che contano.', 'Scrivi test che falliscano se il comportamento si rompe.', 'Non toccare il codice di produzione salvo necessità, e motivalo.', 'Indica cosa resta fuori e perché.'],
-      explain: ['Spiega il modello mentale, non riga per riga.', 'Indica ingressi, uscite ed effetti collaterali.', 'Dai un esempio concreto di questo repository.', 'Chiudi con le trappole o le ipotesi che lo rompono.'],
-      review: ['Dai priorità a bug e rischi rispetto allo stile.', 'Ogni rilievo: gravità, file e riga, perché conta e correzione suggerita.', 'Se non ci sono rilievi reali, dillo; non inventare.', 'Non riscrivere il codice se non richiesto.'],
-      design: ['Fai emergere i requisiti e i vincoli mancanti.', 'Proponi due opzioni con i compromessi e consigliane una.', 'Definisci le interfacce e un piano a fasi.', 'Chiudi con i rischi e come mitigarli.'],
-      ask: ['Riformula la richiesta in una frase per confermare di averla capita.', 'Rispondi a quanto chiesto, senza riempitivi.', 'Se manca un dato, chiedi solo quello.', 'Se ci sono più letture, scegline una e dillo.'],
-    },
+    blocks: { contexto: 'contesto del progetto', objetivo: 'obiettivo esplicito', aceptacion: 'criterio di accettazione', restricciones: 'vincoli', formato: 'formato di uscita' },
     restriction: {
       fix: ['Non cambiare il comportamento al di fuori del guasto.', 'Non rifattorizzare di passaggio.', 'Non inventare riproduzioni che non puoi verificare.'],
       change: ['Non cambiare altri flussi che condividono quel punto.', 'Mantieni il comportamento predefinito dove non si applica.', 'Se tocca prestazioni o permessi, dillo prima di applicarlo.'],

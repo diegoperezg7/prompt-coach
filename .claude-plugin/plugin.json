@@ -1,6 +1,6 @@
 {
   "name": "prompt-coach",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "description": "Scores your prompt draft as you type and rewrites it before you send it. Choose the model, language and verbosity. Terminal, desktop and VS Code.",
   "author": {
     "name": "Diego Pérez"
@@ -38,7 +38,7 @@
     "verbosity": {
       "type": "string",
       "title": "Verbosity",
-      "description": "Length of the proposal: concise (one line per section, about 100 words), balanced (about 250) or detailed (about 330, with a short plan).",
+      "description": "Length of the proposal: concise (one line per section, about 100 words), balanced (about 250) or detailed (about 330, up to three bullets per section).",
       "default": "balanced",
       "options": [
         "concise",

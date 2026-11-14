@@ -150,8 +150,9 @@ export async function paneTerminal($: EngineInterface, e: PaneEvent) {
   const t = UI[p.lang]
   if (p.isBusy) return busyView($, e, t)
   const cols = e.props.bodyColumns
-  // Poco alto: botones encima del editor, para que no queden fuera de la vista. Poco ancho o alto: lo que
-  // falta, sin el motivo de cada criterio.
+  ses.paneCols = cols
+  // Botones encima del editor, siempre a la vista, y debajo la propuesta. Poco ancho o alto: lo que falta, sin
+  // el motivo de cada criterio.
   const short = e.props.scroll.bodyRows < 20
   const reasons = cols >= 60 && !short
   const missing = p.missing.length > 0 ? `${t.toFull}: ${p.missing.map(m => (reasons ? m : m.replace(/ \(.*\)$/, ''))).join('; ')}` : ''
@@ -162,7 +163,7 @@ export async function paneTerminal($: EngineInterface, e: PaneEvent) {
     `${t.proposal} ${p.before}/100 → ${p.after}/100 ${t.fromModel}: ${p.model ?? ''}`, usage, p.note ?? '', changes, missing,
     labels.map(l => `[ ${l} (x) ]`).join(' '),
     p.ask !== undefined ? t.askContexto : '',
-  ])
+  ], ses.edited ?? p.text)
   const actions = (
     <Box flexWrap="wrap" gap={1}>
       {p.held && <Button key="send" label={t.send} hotkey="e" variant="primary" onPress={() => sendAs($, ses.edited ?? p.text)} />}
@@ -196,7 +197,7 @@ export async function paneTerminal($: EngineInterface, e: PaneEvent) {
       {p.ask !== undefined && (
         <Input key="fact" placeholder={p.ask === 'contexto' ? t.askContexto : t.askDetalle} submitLabel={t.addFact} onSubmit={value => addFact($, value)} />
       )}
-      {short && actions}
+      {actions}
       <Input
         key="proposal"
         value={p.text}
@@ -205,7 +206,6 @@ export async function paneTerminal($: EngineInterface, e: PaneEvent) {
         onInput={value => { ses.edited = value }}
         onSubmit={value => apply($, value)}
       />
-      {!short && actions}
     </Box>
   )
 }

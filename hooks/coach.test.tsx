@@ -125,7 +125,9 @@ test('/coach falls back to the local engine and Replace fills the draft', async 
   expect((await ui.find({ type: 'Text', text: /overloaded/ }))?.text).toMatch(/529/)
   const field = await ui.find({ type: 'Input', key: 'proposal' })
   expect(String(field?.props.value)).toMatch(/^Contexto\n- Proyecto: demo-app/)
-  expect(String(field?.props.value)).toMatch(/Qué necesito\n1\. Localiza la causa raíz/)
+  // Sin plan de pasos: el prompt dice qué es estar terminado y deja el cómo al agente.
+  expect(String(field?.props.value)).not.toMatch(/Qué necesito|^1\. /m)
+  expect(String(field?.props.value)).toMatch(/Criterio de aceptación\n- /)
 
   await ui.press({ plugin: 'prompt-coach', key: 'apply' })
   expect(fills.at(-1)).toMatch(/^Contexto/)
@@ -284,8 +286,9 @@ test('a path the model invented does not count as context, and the pane says wha
   await ui.unmount()
 })
 
-test('terminal and desktop adapt to the room: narrow band keeps score and button, short pane shrinks the editor and keeps every button', async ($, on) => {
-  engine(on, { isAnswered: true, text: 'Objetivo\nArregla el login.', usage: USAGE })
+test('terminal and desktop adapt to the room: narrow band keeps score and button, the editor shows the whole proposal when it fits and keeps every button', async ($, on) => {
+  const LONG = ['Objetivo', 'Arregla el login.', ...Array.from({ length: 28 }, (_, i) => `- punto ${i + 1}`)].join('\n')
+  engine(on, { isAnswered: true, text: LONG, usage: USAGE })
   for (const surface of ['terminal', 'desktop'] as const) {
     await $.session.start({ cwd: '/tmp/demo-app', surface, isInteractive: true })
     await $.prompt.edit({ origin: { kind: 'composer' }, text: 'arregla el logi', cursor: 15, start: 15, end: 15, inputText: 'n' })
@@ -299,7 +302,7 @@ test('terminal and desktop adapt to the room: narrow band keeps score and button
     }
 
     await $.command.run({ command: 'coach', args: 'arregla el login', origin: ORIGIN, presentation: 'transcript' })
-    for (const [bodyColumns, bodyRows, editor] of [[30, 10, 3], [60, 18, 10], [120, 40, 14]] as const) {
+    for (const [bodyColumns, bodyRows, editor] of [[30, 10, 3], [60, 18, 10], [120, 40, 28], [120, 60, 31]] as const) {
       const ui = await $.ui.mount({ ...PANE, props: { ...PANE.props, bodyColumns, scroll: { offset: 0, bodyRows } }, surface })
       expect((await ui.find({ type: 'Input', key: 'proposal' }))?.props.rows).toBe(editor)
       for (const key of ['apply', 'copy', 'cancel']) expect(await ui.find({ type: 'Button', key })).toBeDefined()

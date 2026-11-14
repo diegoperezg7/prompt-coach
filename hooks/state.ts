@@ -45,6 +45,10 @@ export const ses = {
   lastOriginal: null as string | null,
   // La conversación al empezar el borrador actual: decide si es un encargo nuevo, una respuesta o una continuación.
   talk: [] as readonly { role: string; text: string }[],
+  // Ancho del cuerpo del panel en su último dibujo, para pedir al abrirlo el alto que necesita la propuesta.
+  paneCols: 80,
+  // La persona cerró el panel (Escape o la marca de cierre) durante esta mejora: no se vuelve a abrir solo.
+  paneClosed: false,
 }
 
 /** Nota del borrador según dónde cae en la conversación. */
@@ -87,11 +91,20 @@ export const gapHint = (text: string, a: ReturnType<typeof assess>) => {
   return gap ? `${ui(text).gap}: ${LABEL[uiLang(text)][gap.id]}` : ''
 }
 
-// Alto del editor del panel en terminal: lo que deja libre el resto, entre 3 y 14 filas, para que los botones
-// no queden fuera de la vista en un terminal bajo o con el panel encima del prompt. En poco alto, sin huecos.
-export function paneLayout(bodyRows: number, cols: number, lines: string[]) {
+// Filas que ocupa un texto en `cols` columnas, contando el ajuste de línea.
+export const wrappedRows = (text: string, cols: number) =>
+  text.split('\n').reduce((sum, line) => sum + Math.max(1, Math.ceil(line.length / Math.max(1, cols))), 0)
+
+// Filas del panel aparte del editor: cabecera, avisos, botones y huecos. Al abrirlo se pide esto más la propuesta.
+export const PANE_CHROME = 8
+
+// Alto del editor del panel en terminal: la propuesta entera si cabe, para leerla sin scroll interno; si no,
+// lo que deja libre el resto (al menos 3 filas). En poco alto, sin huecos.
+export function paneLayout(bodyRows: number, cols: number, lines: string[], text = '') {
   const shown = lines.filter(Boolean)
   const gap = bodyRows < 20 ? 0 : 1
-  const used = shown.reduce((sum, line) => sum + Math.max(1, Math.ceil(line.length / Math.max(1, cols))), 0) + gap * shown.length
-  return { gap, rows: Math.max(3, Math.min(14, bodyRows - used)) }
+  const used = shown.reduce((sum, line) => sum + wrappedRows(line, cols), 0) + gap * shown.length
+  // +1: la línea en la que el cursor queda al final del texto.
+  const wanted = text ? wrappedRows(text, cols) + 1 : 14
+  return { gap, rows: Math.max(3, Math.min(wanted, bodyRows - used)) }
 }

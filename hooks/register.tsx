@@ -103,6 +103,11 @@ export const register: Register = (on, options) => {
     return tree ?? next(e)
   })
 
+  on('ui.close', async ($, e, next) => {
+    if (e.id === PANE && e.origin.kind === 'person') ses.paneClosed = true
+    return next(e)
+  })
+
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) =>
     e.surface === 'vscode' || e.surface === 'mobile' ? paneVscode($, e) : paneTerminal($, e))
 }

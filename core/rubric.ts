@@ -373,8 +373,12 @@ const HEADERS: Record<Lang, string[]> = {
 const LENGTH: Record<Verbosity, string> = {
   concise: 'Exactly one line per section, at most 15 words per line, no extra bullets. At most 110 words in total.',
   balanced: 'Short bullets. At most 220 words.',
-  detailed: 'Up to three bullets per section; under Goal you may add a short numbered plan. At most 340 words.',
+  detailed: 'Up to three bullets per section. At most 340 words.',
 }
+
+// El modelo ya razona solo: pedirle que piense más o dictarle los pasos no mejora el resultado. El prompt dice qué
+// es estar terminado y deja el cómo al agente.
+const THINK = '- Drop instructions on how to think or which steps to follow ("think hard", "piensa bien", step-by-step plans) unless the draft makes an order mandatory: state what done looks like and leave the approach to the agent.'
 
 /** Instrucciones del modelo: una plantilla para todos los idiomas, que fija idioma, cabeceras y longitud. */
 export function systemPrompt(lang: Lang, verbosity: Verbosity = 'balanced', turn: Turn = 'new'): string {
@@ -384,6 +388,7 @@ export function systemPrompt(lang: Lang, verbosity: Verbosity = 'balanced', turn
     '- Do not invent facts, paths or requirements; resolve vague references ("that", "the second one", "yes")',
     '  against the conversation so the agent cannot misread them.',
     '- Keep [Image #N], [Pasted text #N ...], @path mentions and file paths verbatim.',
+    THINK,
     '- No em dashes. Return ONLY the final message, with no commentary and no code fences.',
   ]
   if (turn === 'reply') return [
@@ -419,7 +424,8 @@ export function systemPrompt(lang: Lang, verbosity: Verbosity = 'balanced', turn
     '- Detail (15): current and expected behaviour, literal error message, example or figure; at least two,',
     '  taken from the draft or the conversation.',
     '- Acceptance criteria (20): how to check it is done: a test, a command or a concrete case.',
-    '- Constraints (15): at least two: what not to touch, scope, dependencies.',
+    '- Constraints (15): at least two: what not to touch, scope, dependencies. When a step is risky or',
+    '  irreversible, say when to stop and ask before going on.',
     '- Response format (10): what the agent must return when it finishes.',
     '- Clarity (5): no vague references ("this", "that thing", "stuff") and no bracketed gaps.',
     '',
@@ -434,6 +440,7 @@ export function systemPrompt(lang: Lang, verbosity: Verbosity = 'balanced', turn
     '- Do not state project facts that are not given (file or test names, ports, services, environment',
     '  variables, causes of the failure): tell the agent to check them. Prudent constraints are fine.',
     '- Keep [Image #N], [Pasted text #N ...], @path mentions and file paths verbatim.',
+    THINK,
     '- No em dashes.',
     '',
     'Return ONLY the final prompt, with no commentary and no code fences.',
@@ -574,11 +581,10 @@ export function projectName(cwd: string): string {
 // ---------- motor local (sin modelo) ----------
 
 export type Copy = {
-  contexto: string; objetivo: string; necesito: string; aceptacion: string; alcance: string; salida: string
+  contexto: string; objetivo: string; aceptacion: string; alcance: string; salida: string
   proyecto: string; askBefore: string
   placeholder: Record<Intent, string>
-  blocks: Record<'contexto' | 'objetivo' | 'pasos' | 'aceptacion' | 'restricciones' | 'formato', string>
-  steps: Record<Intent, string[]>
+  blocks: Record<'contexto' | 'objetivo' | 'aceptacion' | 'restricciones' | 'formato', string>
   restriction: Record<Intent, string[]>
   output: Record<Intent, string[]>
   acceptance: Record<Intent, string[]>
@@ -587,7 +593,7 @@ export type Copy = {
 // El motor local, que solo actúa si el modelo no responde: español e inglés aquí, el resto en copy.ts.
 const COPY: Record<'es' | 'en', Copy> = {
   es: {
-    contexto: 'Contexto', objetivo: 'Objetivo', necesito: 'Qué necesito', aceptacion: 'Criterio de aceptación',
+    contexto: 'Contexto', objetivo: 'Objetivo', aceptacion: 'Criterio de aceptación',
     alcance: 'Restricciones', salida: 'Formato de respuesta', proyecto: 'Proyecto',
     askBefore: 'Si falta un dato para hacerlo bien, pregúntalo antes de asumir.',
     placeholder: {
@@ -601,18 +607,7 @@ const COPY: Record<'es' | 'en', Copy> = {
       design: 'Rellena: restricciones, escala esperada y qué no puede cambiar.',
       ask: 'Rellena: resultado esperado y resultado actual (mensaje de error si lo hay).',
     },
-    blocks: { contexto: 'contexto del proyecto', objetivo: 'objetivo explícito', pasos: 'plan de trabajo', aceptacion: 'criterio de aceptación', restricciones: 'restricciones', formato: 'formato de salida' },
-    steps: {
-      fix: ['Localiza la causa raíz antes de tocar código y cita archivo y línea.', 'Aplica el arreglo mínimo; si hay varias opciones, elige una y justifícala en una frase.', 'Explica qué se rompía y por qué el cambio lo resuelve.', 'Añade o ajusta una prueba que falle antes del arreglo y pase después.'],
-      change: ['Describe el comportamiento actual y el deseado, una frase cada uno.', 'Localiza el punto que decide ese comportamiento antes de editar.', 'Aplica el cambio mínimo y revisa los casos límite que toca.', 'Comprueba el antes y el después con un caso concreto.'],
-      feature: ['Resume el enfoque y los archivos que vas a tocar antes de editar.', 'Implementa el cambio mínimo que cumpla el objetivo, sin extras.', 'Cubre el caso feliz y un caso límite con pruebas.', 'Señala en una línea cualquier decisión de diseño con trade-off.'],
-      refactor: ['Define el criterio de terminado antes de editar.', 'Avanza en pasos pequeños y verificables.', 'Mantén el comportamiento observable idéntico; si cambia algo, dilo.', 'Ejecuta la suite tras cada paso relevante.'],
-      test: ['Enumera los comportamientos a cubrir y los bordes que importan.', 'Escribe pruebas que fallen si el comportamiento se rompe.', 'No toques código de producción salvo que sea imprescindible y justifícalo.', 'Indica qué casos quedan fuera y por qué.'],
-      explain: ['Explica el modelo mental, no línea a línea.', 'Señala entradas, salidas y efectos secundarios.', 'Da un ejemplo concreto de este repositorio.', 'Termina con las trampas o supuestos que suelen romperlo.'],
-      review: ['Prioriza bugs y riesgos sobre estilo.', 'Cada hallazgo: severidad, archivo y línea, por qué importa y arreglo sugerido.', 'Si no hay hallazgos reales, dilo; no inventes.', 'No reescribas el código salvo que lo pida.'],
-      design: ['Aclara requisitos y restricciones que falten.', 'Propón dos opciones con trade-offs y recomienda una.', 'Define interfaces y un plan por fases.', 'Cierra con los riesgos y cómo mitigarlos.'],
-      ask: ['Reformula la petición en una frase para confirmar que la entiendes.', 'Responde lo pedido sin relleno.', 'Si falta un dato, pide solo ese dato.', 'Si hay varias interpretaciones, elige una y dilo.'],
-    },
+    blocks: { contexto: 'contexto del proyecto', objetivo: 'objetivo explícito', aceptacion: 'criterio de aceptación', restricciones: 'restricciones', formato: 'formato de salida' },
     restriction: {
       fix: ['No cambies comportamiento fuera del fallo.', 'No refactorices de paso.', 'No inventes reproducciones que no puedas verificar.'],
       change: ['No cambies otros flujos que compartan ese punto.', 'Mantén el comportamiento por defecto cuando no aplique.', 'Si afecta a rendimiento o permisos, dilo antes de aplicarlo.'],
@@ -648,7 +643,7 @@ const COPY: Record<'es' | 'en', Copy> = {
     },
   },
   en: {
-    contexto: 'Context', objetivo: 'Goal', necesito: 'What I need', aceptacion: 'Acceptance criteria',
+    contexto: 'Context', objetivo: 'Goal', aceptacion: 'Acceptance criteria',
     alcance: 'Constraints', salida: 'Response format', proyecto: 'Project',
     askBefore: 'If a missing detail matters, ask before assuming.',
     placeholder: {
@@ -662,18 +657,7 @@ const COPY: Record<'es' | 'en', Copy> = {
       design: 'Fill in: constraints, expected scale and what cannot change.',
       ask: 'Fill in: expected result and actual result (error message if any).',
     },
-    blocks: { contexto: 'project context', objetivo: 'explicit goal', pasos: 'work plan', aceptacion: 'acceptance criteria', restricciones: 'constraints', formato: 'output format' },
-    steps: {
-      fix: ['Find the root cause before touching code and name file and line.', 'Apply the smallest fix; if several options exist, pick one and justify it in one sentence.', 'Explain what was broken and why the change fixes it.', 'Add or adjust a test that fails before the fix and passes after.'],
-      change: ['Describe current behaviour and desired behaviour, one sentence each.', 'Find the point that decides that behaviour before editing.', 'Apply the smallest change and review the edge cases it touches.', 'Check before and after with one concrete case.'],
-      feature: ['Summarise the approach and the files you will touch before editing.', 'Implement the smallest change that meets the goal, nothing extra.', 'Cover the happy path and one edge case with tests.', 'Flag any design trade-off in one line.'],
-      refactor: ['Define done before editing.', 'Move in small, verifiable steps.', 'Keep observable behaviour identical; if anything changes, say so.', 'Run the suite after each relevant step.'],
-      test: ['List the behaviours to cover and the edges that matter.', 'Write tests that fail when the behaviour breaks.', 'Do not touch production code unless unavoidable, and justify it.', 'State what stays out of scope and why.'],
-      explain: ['Explain the mental model, not line by line.', 'Name inputs, outputs and side effects.', 'Give one concrete example from this repository.', 'Finish with the traps or assumptions that break it.'],
-      review: ['Prioritise bugs and risks over style.', 'Each finding: severity, file and line, why it matters, suggested fix.', 'If there are no real findings, say so; do not invent.', 'Do not rewrite the code unless asked.'],
-      design: ['Surface missing requirements and constraints.', 'Propose two options with trade-offs and recommend one.', 'Define interfaces and a phased plan.', 'Close with risks and mitigations.'],
-      ask: ['Restate the request in one sentence to confirm you understood it.', 'Answer what was asked without filler.', 'If a detail is missing, ask for just that detail.', 'If there are several readings, pick one and say so.'],
-    },
+    blocks: { contexto: 'project context', objetivo: 'explicit goal', aceptacion: 'acceptance criteria', restricciones: 'constraints', formato: 'output format' },
     restriction: {
       fix: ['Do not change behaviour outside the failure.', 'Do not refactor along the way.', 'Do not invent reproductions you cannot verify.'],
       change: ['Do not change other flows that share that point.', 'Keep the default behaviour where it does not apply.', 'If it affects performance or permissions, say so before applying.'],
@@ -735,8 +719,6 @@ export function buildPrompt(text: string, cwd: string) {
   lines.push(copy.objetivo, cleanRequest(text))
   if (intent === 'ask' || (words < 10 && !anchored)) lines.push(copy.placeholder[intent])
   lines.push('')
-  changes.push(copy.blocks.pasos)
-  lines.push(copy.necesito, ...copy.steps[intent].map((step, i) => i + 1 + '. ' + step), '')
   changes.push(copy.blocks.aceptacion)
   lines.push(copy.aceptacion, ...copy.acceptance[intent].map(item => '- ' + item), '')
   changes.push(copy.blocks.restricciones)

@@ -13,7 +13,7 @@ import { draftForModel, expandPastes, hasPasteChip, hasPastedBlock, restorePaste
 import type { Pasted } from '../core/pastes.ts'
 import { nowMs, planDelta, planNow, recordCalls, summarize } from './usage.ts'
 import type { Call } from './usage.ts'
-import { cfg, isCoachable, MAX_DRAFT, noteLang, PANE, RULE_FILES, scoreOf, ses, skipScore, ui, uiLang } from './state.ts'
+import { cfg, isCoachable, MAX_DRAFT, noteLang, PANE, PANE_CHROME, RULE_FILES, scoreOf, ses, skipScore, ui, uiLang, wrappedRows } from './state.ts'
 
 // El motor exige que cada fichero declare las referencias de $.state que lee o escribe; actions.ts y
 // views.tsx declaran las mismas (misma clave y misma forma).
@@ -29,8 +29,15 @@ function failureNote(r: ModelCompleteResult, lang: Lang): string {
 }
 
 // Declarada con `function`: el motor solo sigue $ entre ficheros hasta declaraciones de función.
-export function openPane($: EngineInterface) {
-  return $.ui.open({ id: PANE, title: 'Prompt Coach', focus: true, closeOnEscape: true, rows: 24 }).catch(() => ({ isPlaced: false as const }))
+export function openPane($: EngineInterface, rows = 24) {
+  return $.ui.open({ id: PANE, title: 'Prompt Coach', focus: true, closeOnEscape: true, rows }).catch(() => ({ isPlaced: false as const }))
+}
+
+// Con la propuesta lista, el panel pide el alto que necesita para mostrarla entera; el terminal lo concede hasta
+// donde le cabe, y un alto que la persona haya fijado arrastrando manda.
+async function fitPane($: EngineInterface, text: string) {
+  if (!text || ses.paneClosed) return
+  await openPane($, Math.max(24, wrappedRows(text, ses.paneCols) + 1 + PANE_CHROME))
 }
 
 export type Improved = { text: string; score: number }
@@ -58,11 +65,17 @@ export async function improve($: EngineInterface, sent: string, opts: { held?: b
   const busy = update($, proposal, () => ({
     original: text, text: '', lang: uiLang(text), before, after: before, origin: 'local' as const, changes: [], missing: [], passes: 0, isBusy: true, isApplied: false, held: opts.held,
   }))
+  ses.paneClosed = false
   const opening = openPane($)
   await busy
   await opening
   try {
-    return await rewrite($, text, pasted, lang, id, controller.signal)
+    const done = await rewrite($, text, pasted, lang, id, controller.signal)
+    if (id === ses.run) {
+      const p = await read($, proposal)
+      if (p && !p.isBusy) await fitPane($, p.text)
+    }
+    return done
   } catch {
     return { text, score: before }
   } finally {
